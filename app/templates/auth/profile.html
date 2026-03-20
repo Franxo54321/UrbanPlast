@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center mb-4">
+                <i class="bi bi-person-circle fs-1 me-3" style="color: var(--up-green);"></i>
+                <div>
+                    <h2 class="mb-0">Mi Perfil</h2>
+                    <small class="text-muted">Editá tus datos personales</small>
+                </div>
+            </div>
+
+            <div class="card shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">{{ form.username.label.text }}</label>
+                                {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                                {% for error in form.username.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">{{ form.email.label.text }}</label>
+                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                                {% for error in form.email.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-up-green btn-lg">
+                                <i class="bi bi-check-lg"></i> Guardar cambios
+                            </button>
+                            <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-key"></i> Cambiar contraseña
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if current_user.orders.count() > 0 %}
+            <div class="card shadow-sm rounded-4 mt-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-bag-check"></i> Últimos pedidos</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in current_user.orders.order_by(None).limit(5).all() %}
+                            <tr>
+                                <td>{{ order.id }}</td>
+                                <td>{{ order.created_at.strftime('%d/%m/%Y') }}</td>
+                                <td class="fw-bold">${{ "%.2f"|format(order.total) }}</td>
+                                <td>
+                                    {% if order.status == 'pendiente' %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% elif order.status == 'pagado' %}
+                                    <span class="badge bg-success">Pagado</span>
+                                    {% elif order.status == 'enviado' %}
+                                    <span class="badge bg-info">Enviado</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ order.status|capitalize }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="{{ url_for('cart.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

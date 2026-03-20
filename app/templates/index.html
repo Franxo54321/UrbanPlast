@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Inicio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, var(--up-dark) 0%, var(--up-green) 50%, var(--up-wood) 100%);
+        padding: 80px 0;
+        color: white;
+    }
+    .hero-section h1 { font-size: 3rem; font-weight: 700; }
+    .hero-section p { font-size: 1.25rem; opacity: .85; }
+    .carousel-product-card {
+        transition: transform .3s;
+    }
+    .carousel-product-card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1><i class="bi bi-tree-fill"></i> UrbanPlast</h1>
+        <p class="lead mb-4">Muebles de exterior en plástico y madera para disfrutar al aire libre</p>
+        <a href="{{ url_for('main.products') }}" class="btn btn-light btn-lg px-5">Ver Productos</a>
+    </div>
+</section>
+
+<!-- Categorías rápidas -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h3 class="text-center mb-4">Explorá por categoría</h3>
+        <div class="row g-3 justify-content-center">
+            {% for cat in categories %}
+            <div class="col-6 col-md-2">
+                <a href="{{ url_for('main.products', categoria=cat.slug) }}" class="text-decoration-none">
+                    <div class="card text-center border-0 shadow-sm h-100 category-card">
+                        <div class="card-body py-4">
+                            <i class="bi bi-grid fs-2 text-up-green"></i>
+                            <p class="mb-0 mt-2 fw-semibold text-dark">{{ cat.name }}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+            <div class="col-6 col-md-2">
+                <a href="{{ url_for('main.products', material='plastico') }}" class="text-decoration-none">
+                    <div class="card text-center border-0 shadow-sm h-100 category-card">
+                        <div class="card-body py-4">
+                            <span class="fs-2">🪑</span>
+                            <p class="mb-0 mt-2 fw-semibold text-dark">Plástico</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-2">
+                <a href="{{ url_for('main.products', material='madera') }}" class="text-decoration-none">
+                    <div class="card text-center border-0 shadow-sm h-100 category-card">
+                        <div class="card-body py-4">
+                            <span class="fs-2">🪵</span>
+                            <p class="mb-0 mt-2 fw-semibold text-dark">Madera</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Productos Destacados - Carrusel -->
+{% if featured %}
+<section class="py-5">
+    <div class="container">
+        <h3 class="text-center mb-4"><i class="bi bi-star-fill text-warning"></i> Productos Destacados</h3>
+        <div id="carouselFeatured" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                {% for chunk_start in range(0, featured|length, 4) %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                    <div class="row g-4 px-2">
+                        {% for product in featured[chunk_start:chunk_start+4] %}
+                        <div class="col-md-3 col-6">
+                            <div class="card h-100 shadow-sm carousel-product-card">
+                                <a href="{{ url_for('main.product_detail', slug=product.slug) }}">
+                                    <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="object-fit: cover;">
+                                </a>
+                                <div class="card-body d-flex flex-column">
+                                    <span class="badge bg-secondary mb-2 align-self-start">{{ product.category.name }}</span>
+                                    <h6 class="card-title">
+                                        <a href="{{ url_for('main.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">{{ product.name }}</a>
+                                    </h6>
+                                    <p class="text-up-green fw-bold mt-auto fs-5">${{ "%.2f"|format(product.price) }}</p>
+                                    <button class="btn btn-up-green btn-sm add-to-cart-btn" data-product-id="{{ product.id }}">
+                                        <i class="bi bi-cart-plus"></i> Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if featured|length > 4 %}
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselFeatured" data-bs-slide="prev">
+                <span class="bg-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                    <span class="carousel-control-prev-icon"></span>
+                </span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselFeatured" data-bs-slide="next">
+                <span class="bg-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                    <span class="carousel-control-next-icon"></span>
+                </span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Últimos productos -->
+{% if latest %}
+<section class="py-5 bg-light">
+    <div class="container">
+        <h3 class="text-center mb-4"><i class="bi bi-clock-history"></i> Últimos Productos</h3>
+        <div class="row g-4">
+            {% for product in latest %}
+            <div class="col-lg-3 col-md-4 col-6">
+                <div class="card h-100 shadow-sm product-card">
+                    <a href="{{ url_for('main.product_detail', slug=product.slug) }}">
+                        <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="object-fit: cover;">
+                    </a>
+                    <div class="card-body d-flex flex-column">
+                        <span class="badge bg-secondary mb-2 align-self-start">{{ product.category.name }}</span>
+                        <h6 class="card-title">
+                            <a href="{{ url_for('main.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">{{ product.name }}</a>
+                        </h6>
+                        <span class="badge {% if product.material == 'madera' %}bg-success{% else %}bg-info{% endif %} mb-2 align-self-start">
+                            {{ product.material|capitalize }}
+                        </span>
+                        <p class="text-up-green fw-bold mt-auto fs-5">${{ "%.2f"|format(product.price) }}</p>
+                        <button class="btn btn-up-green btn-sm add-to-cart-btn" data-product-id="{{ product.id }}">
+                            <i class="bi bi-cart-plus"></i> Agregar al carrito
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-4">
+            <a href="{{ url_for('main.products') }}" class="btn btn-up-green btn-lg">Ver todos los productos →</a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Si no hay productos -->
+{% if not featured and not latest %}
+<section class="py-5 text-center">
+    <div class="container">
+        <i class="bi bi-box-seam fs-1 text-muted"></i>
+        <h4 class="mt-3 text-muted">Todavía no hay productos cargados</h4>
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('admin.product_create') }}" class="btn btn-up-green mt-3">Cargar primer producto</a>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

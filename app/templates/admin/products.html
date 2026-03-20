@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Administrar Productos{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-up-green text-white">
+                    <i class="bi bi-gear-fill"></i> Admin
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action active">
+                        <i class="bi bi-box-seam"></i> Productos
+                    </a>
+                    <a href="{{ url_for('admin.product_create') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-plus-circle"></i> Nuevo Producto
+                    </a>
+                    <a href="{{ url_for('main.index') }}" class="list-group-item list-group-item-action text-muted">
+                        <i class="bi bi-arrow-left"></i> Volver al sitio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Productos</h2>
+                <a href="{{ url_for('admin.product_create') }}" class="btn btn-up-green">
+                    <i class="bi bi-plus-circle"></i> Nuevo Producto
+                </a>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Imagen</th>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Material</th>
+                                <th>Precio</th>
+                                <th>Stock</th>
+                                <th>Destacado</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products.items %}
+                            <tr id="adminRow-{{ product.id }}">
+                                <td>
+                                    <img src="{{ product.image_url }}" alt="" style="width:50px;height:50px;object-fit:cover;" class="rounded">
+                                </td>
+                                <td class="fw-semibold">{{ product.name }}</td>
+                                <td>{{ product.category.name }}</td>
+                                <td>
+                                    <span class="badge {% if product.material == 'madera' %}bg-success{% else %}bg-info{% endif %}">
+                                        {{ product.material|capitalize }}
+                                    </span>
+                                </td>
+                                <td>${{ "%.2f"|format(product.price) }}</td>
+                                <td>{{ product.stock }}</td>
+                                <td>
+                                    {% if product.featured %}
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    {% else %}
+                                    <i class="bi bi-star text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if product.active %}
+                                    <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin.product_edit', product_id=product.id) }}" class="btn btn-outline-primary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button class="btn btn-outline-danger admin-delete-btn" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4 text-muted">No hay productos cargados</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% if products.pages > 1 %}
+            <nav class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if products.has_prev %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('admin.products', page=products.prev_num) }}">← Anterior</a></li>
+                    {% endif %}
+                    {% for p in products.iter_pages() %}
+                        {% if p %}
+                        <li class="page-item {% if p == products.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin.products', page=p) }}">{{ p }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if products.has_next %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('admin.products', page=products.next_num) }}">Siguiente →</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirmar eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirmar eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que querés eliminar <strong id="deleteProductName"></strong>? Esta acción no se puede deshacer.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

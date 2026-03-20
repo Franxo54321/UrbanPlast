@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Contacto{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <h1 class="fw-bold text-center mb-2" style="color: var(--up-green);">Contactanos</h1>
+        <p class="text-center text-muted mb-5">¿Tenés alguna consulta? Escribinos y te respondemos a la brevedad.</p>
+
+        <div class="row g-5">
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4">Información de contacto</h5>
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-geo-alt-fill fs-4 me-3" style="color: var(--up-green);"></i>
+                            <div>
+                                <strong>Dirección</strong>
+                                <p class="text-muted mb-0">Av. Corrientes 1234, CABA<br>Buenos Aires, Argentina</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-telephone-fill fs-4 me-3" style="color: var(--up-green);"></i>
+                            <div>
+                                <strong>Teléfono</strong>
+                                <p class="text-muted mb-0">+54 11 1234-5678</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-envelope-fill fs-4 me-3" style="color: var(--up-green);"></i>
+                            <div>
+                                <strong>Email</strong>
+                                <p class="text-muted mb-0">info@urbanplast.com</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-whatsapp fs-4 me-3" style="color: #25d366;"></i>
+                            <div>
+                                <strong>WhatsApp</strong>
+                                <p class="text-muted mb-0">+54 11 1234-5678</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6 class="fw-bold">Horarios de atención</h6>
+                        <p class="text-muted mb-1">Lunes a Viernes: 9:00 - 18:00</p>
+                        <p class="text-muted mb-0">Sábados: 9:00 - 13:00</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4">Envianos un mensaje</h5>
+                        <form>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" placeholder="Tu nombre">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" placeholder="tu@email.com">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Asunto</label>
+                                    <input type="text" class="form-control" placeholder="¿En qué podemos ayudarte?">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Mensaje</label>
+                                    <textarea class="form-control" rows="5" placeholder="Escribí tu mensaje..."></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-up-green btn-lg w-100">
+                                        <i class="bi bi-send"></i> Enviar mensaje
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

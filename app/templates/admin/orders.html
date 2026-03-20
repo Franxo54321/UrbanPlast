@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Admin - Pedidos{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar Admin -->
+        <div class="col-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-up-green text-white">
+                    <i class="bi bi-gear-fill"></i> Admin
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action active">
+                        <i class="bi bi-bag-check"></i> Pedidos
+                    </a>
+                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-box-seam"></i> Productos
+                    </a>
+                    <a href="{{ url_for('admin.product_create') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-plus-circle"></i> Nuevo Producto
+                    </a>
+                    <a href="{{ url_for('main.index') }}" class="list-group-item list-group-item-action text-muted">
+                        <i class="bi bi-arrow-left"></i> Volver al sitio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="bi bi-bag-check"></i> Pedidos</h2>
+            </div>
+
+            <!-- Filtros de estado -->
+            <div class="mb-3">
+                <a href="{{ url_for('admin.orders') }}" class="btn btn-sm {% if not current_status %}btn-up-green{% else %}btn-outline-secondary{% endif %}">Todos</a>
+                <a href="{{ url_for('admin.orders', estado='pendiente') }}" class="btn btn-sm {% if current_status == 'pendiente' %}btn-warning{% else %}btn-outline-warning{% endif %}">Pendiente</a>
+                <a href="{{ url_for('admin.orders', estado='pagado') }}" class="btn btn-sm {% if current_status == 'pagado' %}btn-success{% else %}btn-outline-success{% endif %}">Pagado</a>
+                <a href="{{ url_for('admin.orders', estado='enviado') }}" class="btn btn-sm {% if current_status == 'enviado' %}btn-info{% else %}btn-outline-info{% endif %}">Enviado</a>
+                <a href="{{ url_for('admin.orders', estado='completado') }}" class="btn btn-sm {% if current_status == 'completado' %}btn-up-green{% else %}btn-outline-secondary{% endif %}">Completado</a>
+                <a href="{{ url_for('admin.orders', estado='cancelado') }}" class="btn btn-sm {% if current_status == 'cancelado' %}btn-danger{% else %}btn-outline-danger{% endif %}">Cancelado</a>
+            </div>
+
+            {% if orders.items %}
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Importe</th>
+                                <th>Pago</th>
+                                <th>Entrega</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders.items %}
+                            <tr>
+                                <td class="fw-bold">#{{ order.id }}</td>
+                                <td>{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <div>{{ order.user.username }}</div>
+                                    <small class="text-muted">{{ order.user.email }}</small>
+                                </td>
+                                <td class="fw-bold">${{ "%.2f"|format(order.total) }}</td>
+                                <td>
+                                    {% if order.payment_method == 'mercadopago' %}💙 MP
+                                    {% elif order.payment_method == 'tarjeta' %}💳 Tarjeta
+                                    {% else %}🏦 Transf.{% endif %}
+                                </td>
+                                <td>
+                                    {% if order.delivery_type == 'retiro' %}
+                                    <span class="badge bg-secondary">🏪 Retiro</span>
+                                    {% else %}
+                                    <span class="badge bg-info text-dark">📦 Envío</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if order.status == 'pendiente' %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% elif order.status == 'pagado' %}
+                                    <span class="badge bg-success">Pagado</span>
+                                    {% elif order.status == 'enviado' %}
+                                    <span class="badge bg-info">Enviado</span>
+                                    {% elif order.status == 'completado' %}
+                                    <span class="badge bg-up-green">Completado</span>
+                                    {% elif order.status == 'cancelado' %}
+                                    <span class="badge bg-danger">Cancelado</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ order.status|capitalize }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Paginación -->
+            {% if orders.pages > 1 %}
+            <nav class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if orders.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.orders', page=orders.prev_num, estado=current_status) }}">«</a>
+                    </li>
+                    {% endif %}
+                    {% for p in orders.iter_pages() %}
+                        {% if p %}
+                        <li class="page-item {% if p == orders.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin.orders', page=p, estado=current_status) }}">{{ p }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if orders.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.orders', page=orders.next_num, estado=current_status) }}">»</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-bag-x fs-1 text-muted"></i>
+                <h4 class="mt-3 text-muted">No hay pedidos{% if current_status %} con estado "{{ current_status }}"{% endif %}</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Pedido #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-4">
+                <i class="bi bi-check-circle-fill fs-1" style="color: var(--up-green);"></i>
+                <h2 class="fw-bold mt-2">¡Pedido registrado!</h2>
+                <p class="text-muted">Pedido #{{ order.id }} — {{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+            </div>
+
+            <div class="card shadow-sm rounded-4 mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold"><i class="bi bi-geo-alt"></i> Dirección de envío</h6>
+                            <p class="text-muted mb-0">{{ order.full_address }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h6 class="fw-bold"><i class="bi bi-truck"></i> Entrega</h6>
+                            <p class="text-muted">
+                                {% if order.delivery_type == 'retiro' %}🏪 Retiro{% else %}📦 Envío{% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-2">
+                            <h6 class="fw-bold"><i class="bi bi-telephone"></i> Teléfono</h6>
+                            <p class="text-muted">{{ order.phone }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h6 class="fw-bold"><i class="bi bi-wallet2"></i> Pago</h6>
+                            <p class="text-muted">
+                                {% if order.payment_method == 'mercadopago' %}💙 MercadoPago
+                                {% elif order.payment_method == 'tarjeta' %}💳 Tarjeta
+                                {% else %}🏦 Transferencia{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% if order.notes %}
+                    <div class="mt-2">
+                        <h6 class="fw-bold"><i class="bi bi-chat-text"></i> Notas</h6>
+                        <p class="text-muted">{{ order.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">Productos</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-center">Cant.</th>
+                                <th class="text-end">Precio</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items %}
+                            <tr>
+                                <td>{{ item.product_name }}</td>
+                                <td class="text-center">{{ item.quantity }}</td>
+                                <td class="text-end">${{ "%.2f"|format(item.price) }}</td>
+                                <td class="text-end fw-bold">${{ "%.2f"|format(item.subtotal) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3" class="fw-bold fs-5">Total</td>
+                                <td class="text-end fw-bold fs-5" style="color: var(--up-green);">${{ "%.2f"|format(order.total) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="alert alert-success rounded-3">
+                <i class="bi bi-info-circle"></i>
+                {% if order.payment_method == 'mercadopago' %}
+                    Te enviaremos un link de MercadoPago por email para completar el pago.
+                {% elif order.payment_method == 'tarjeta' %}
+                    Recibirás un link de pago seguro en tu email para abonar con tarjeta.
+                {% else %}
+                    Te enviaremos los datos bancarios por email para realizar la transferencia.
+                {% endif %}
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('cart.my_orders') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-list-ul"></i> Mis pedidos
+                </a>
+                <a href="{{ url_for('main.products') }}" class="btn btn-up-green">
+                    <i class="bi bi-arrow-left"></i> Seguir comprando
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

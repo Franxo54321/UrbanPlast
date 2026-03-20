@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block title %}Finalizar Compra{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-indicator { display: flex; justify-content: center; align-items: center; gap: .5rem; margin-bottom: 2rem; }
+    .step-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; }
+    .step-circle.active { background-color: var(--up-green); color: #fff; }
+    .step-circle.done { background-color: var(--up-green); color: #fff; }
+    .step-circle.pending { background-color: #dee2e6; color: #6c757d; }
+    .step-line { width: 40px; height: 2px; background-color: #dee2e6; }
+    .step-line.done { background-color: var(--up-green); }
+    .step-label { font-size: .8rem; }
+    .checkout-step { display: none; }
+    .checkout-step.active { display: block; }
+    .payment-card { cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+    .payment-card.selected { border-color: var(--up-green) !important; box-shadow: 0 0 0 2px var(--up-green-light); }
+    .payment-card:hover { border-color: var(--up-wood-light) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-3"><i class="bi bi-credit-card-2-front"></i> Finalizar Compra</h2>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator" id="stepIndicator">
+        <div class="text-center">
+            <div class="step-circle active" id="stepCircle1">1</div>
+            <div class="step-label">Envío</div>
+        </div>
+        <div class="step-line" id="stepLine1"></div>
+        <div class="text-center">
+            <div class="step-circle pending" id="stepCircle2">2</div>
+            <div class="step-label">Resumen</div>
+        </div>
+        <div class="step-line" id="stepLine2"></div>
+        <div class="text-center">
+            <div class="step-circle pending" id="stepCircle3">3</div>
+            <div class="step-label">Pago</div>
+        </div>
+    </div>
+
+    <form method="POST" id="checkoutForm" novalidate>
+        {{ form.hidden_tag() }}
+
+        <!-- PASO 1: Dirección de Envío -->
+        <div class="checkout-step active" id="step1">
+            <div class="row justify-content-center">
+                <div class="col-lg-7">
+                    <div class="card shadow-sm rounded-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-box-seam"></i> Tipo de entrega</h5>
+                            <div class="row g-2 mb-4">
+                                {% for value, label in form.delivery_type.choices %}
+                                <div class="col-6">
+                                    <div class="form-check border rounded-3 p-3 payment-card {% if form.delivery_type.data == value %}selected{% endif %}" onclick="selectDelivery(this, '{{ value }}')">
+                                        <input class="form-check-input" type="radio" name="{{ form.delivery_type.name }}" id="del_{{ value }}" value="{{ value }}" {% if form.delivery_type.data == value %}checked{% endif %}>
+                                        <label class="form-check-label fw-semibold" for="del_{{ value }}">{{ label }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill" style="color: var(--up-wood);"></i> Dirección de Envío</h5>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Dirección</label>
+                                {{ form.address(class="form-control" + (" is-invalid" if form.address.errors else ""), placeholder="Ej: Av. San Martín 1234") }}
+                                {% for error in form.address.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Ciudad</label>
+                                    {{ form.city(class="form-control" + (" is-invalid" if form.city.errors else ""), placeholder="Buenos Aires") }}
+                                    {% for error in form.city.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Provincia</label>
+                                    {{ form.province(class="form-control" + (" is-invalid" if form.province.errors else ""), placeholder="CABA") }}
+                                    {% for error in form.province.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Código Postal</label>
+                                    {{ form.postal_code(class="form-control" + (" is-invalid" if form.postal_code.errors else ""), placeholder="1000") }}
+                                    {% for error in form.postal_code.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">País</label>
+                                    {{ form.country(class="form-control", placeholder="Argentina") }}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Teléfono</label>
+                                {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), placeholder="+54 11 ...") }}
+                                {% for error in form.phone.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <button type="button" class="btn btn-up-green btn-lg w-100" onclick="goToStep(2)">
+                                Continuar al resumen <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 2: Resumen -->
+        <div class="checkout-step" id="step2">
+            <div class="row justify-content-center">
+                <div class="col-lg-7">
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-receipt"></i> Resumen de tu Orden</h5>
+                            <table class="table mb-0">
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td>{{ item.product.name }}</td>
+                                        <td class="text-end fw-bold">${{ "%.2f"|format(item.subtotal) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <div class="border-top pt-3 mt-2">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Subtotal:</span>
+                                    <span class="fw-bold">${{ "%.2f"|format(total) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Envío:</span>
+                                    <span class="fw-semibold text-up-green">Gratis</span>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between fs-5">
+                                    <span class="fw-bold">Total:</span>
+                                    <span class="fw-bold text-up-green">${{ "%.2f"|format(total) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted mb-3"><i class="bi bi-geo-alt"></i> <strong>Envío a:</strong> <span id="summaryAddress"></span></p>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </button>
+                        <button type="button" class="btn btn-up-green btn-lg flex-grow-1" onclick="goToStep(3)">
+                            Elegir método de pago <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 3: Pago -->
+        <div class="checkout-step" id="step3">
+            <div class="row justify-content-center">
+                <div class="col-lg-7">
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-wallet2"></i> Método de pago</h5>
+                            <div class="row g-3 mb-3">
+                                {% for value, label in form.payment_method.choices %}
+                                <div class="col-12">
+                                    <div class="border rounded-3 p-3 payment-card {% if form.payment_method.data == value %}selected{% endif %}" onclick="selectPayment(this, '{{ value }}')">
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input" type="radio" name="{{ form.payment_method.name }}" id="pay_{{ value }}" value="{{ value }}" {% if form.payment_method.data == value %}checked{% endif %}>
+                                            <label class="form-check-label fw-semibold" for="pay_{{ value }}">{{ label }}</label>
+                                        </div>
+                                        {% if value == 'mercadopago' %}
+                                        <small class="text-muted ms-4">Serás redirigido a MercadoPago para pagar de forma segura.</small>
+                                        {% elif value == 'tarjeta' %}
+                                        <small class="text-muted ms-4">Te enviaremos un link de pago seguro por email.</small>
+                                        {% elif value == 'transferencia' %}
+                                        <small class="text-muted ms-4">Recibirás los datos bancarios por email para transferir.</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Notas (opcional)</label>
+                                {{ form.notes(class="form-control", rows=2, placeholder="Alguna indicación especial...") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </button>
+                        <button type="submit" class="btn btn-up-green btn-lg flex-grow-1">
+                            <i class="bi bi-check-circle"></i> Confirmar pedido — ${{ "%.2f"|format(total) }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+
+function goToStep(step) {
+    // Validar paso 1 antes de avanzar
+    if (step > 1 && currentStep === 1) {
+        const address = document.querySelector('[name="address"]');
+        const city = document.querySelector('[name="city"]');
+        const province = document.querySelector('[name="province"]');
+        const postal = document.querySelector('[name="postal_code"]');
+        const phone = document.querySelector('[name="phone"]');
+        let valid = true;
+        [address, city, province, postal, phone].forEach(f => {
+            if (!f.value.trim()) { f.classList.add('is-invalid'); valid = false; }
+            else { f.classList.remove('is-invalid'); }
+        });
+        if (!valid) return;
+    }
+
+    // Actualizar resumen de dirección
+    if (step === 2) {
+        const addr = document.querySelector('[name="address"]').value;
+        const city = document.querySelector('[name="city"]').value;
+        const prov = document.querySelector('[name="province"]').value;
+        const cp = document.querySelector('[name="postal_code"]').value;
+        const country = document.querySelector('[name="country"]').value || 'Argentina';
+        document.getElementById('summaryAddress').textContent = [addr, city, prov, cp, country].filter(Boolean).join(', ');
+    }
+
+    currentStep = step;
+    document.querySelectorAll('.checkout-step').forEach(el => el.classList.remove('active'));
+    document.getElementById('step' + step).classList.add('active');
+
+    // Actualizar indicadores
+    for (let i = 1; i <= 3; i++) {
+        const circle = document.getElementById('stepCircle' + i);
+        circle.classList.remove('active', 'done', 'pending');
+        if (i < step) circle.classList.add('done');
+        else if (i === step) circle.classList.add('active');
+        else circle.classList.add('pending');
+    }
+    document.getElementById('stepLine1').classList.toggle('done', step >= 2);
+    document.getElementById('stepLine2').classList.toggle('done', step >= 3);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function selectPayment(card, value) {
+    document.querySelectorAll('#step3 .payment-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    card.querySelector('input[type=radio]').checked = true;
+}
+
+function selectDelivery(card, value) {
+    document.querySelectorAll('#step1 .payment-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    card.querySelector('input[type=radio]').checked = true;
+}
+</script>
+{% endblock %}

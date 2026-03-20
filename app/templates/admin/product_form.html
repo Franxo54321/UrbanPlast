@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Editar{% else %}Nuevo{% endif %} Producto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-up-green text-white">
+                    <i class="bi bi-gear-fill"></i> Admin
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-box-seam"></i> Productos
+                    </a>
+                    <a href="{{ url_for('admin.product_create') }}" class="list-group-item list-group-item-action active">
+                        <i class="bi bi-plus-circle"></i> Nuevo Producto
+                    </a>
+                    <a href="{{ url_for('main.index') }}" class="list-group-item list-group-item-action text-muted">
+                        <i class="bi bi-arrow-left"></i> Volver al sitio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="col-md-10">
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h2 class="mb-0">{% if editing %}Editar: {{ product.name }}{% else %}Nuevo Producto{% endif %}</h2>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">{{ form.name.label.text }}</label>
+                                    {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Ej: Silla de jardín") }}
+                                    {% for error in form.name.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">{{ form.description.label.text }}</label>
+                                    {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=4, placeholder="Descripción del producto...") }}
+                                    {% for error in form.description.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">{{ form.image.label.text }}</label>
+                                    {{ form.image(class="form-control") }}
+                                    {% for error in form.image.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                    {% if editing and product.image %}
+                                    <div class="mt-2">
+                                        <img src="{{ product.image_url }}" class="img-thumbnail" style="max-height: 150px;">
+                                        <small class="d-block text-muted">Imagen actual</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">{{ form.price.label.text }} ($)</label>
+                                {{ form.price(class="form-control" + (" is-invalid" if form.price.errors else ""), placeholder="0.00") }}
+                                {% for error in form.price.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">{{ form.stock.label.text }}</label>
+                                {{ form.stock(class="form-control" + (" is-invalid" if form.stock.errors else ""), placeholder="0") }}
+                                {% for error in form.stock.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">{{ form.material.label.text }}</label>
+                                {{ form.material(class="form-select" + (" is-invalid" if form.material.errors else "")) }}
+                                {% for error in form.material.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">{{ form.category_id.label.text }}</label>
+                                {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
+                                {% for error in form.category_id.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-3">
+                                <div class="form-check form-switch">
+                                    {{ form.featured(class="form-check-input") }}
+                                    <label class="form-check-label">{{ form.featured.label.text }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check form-switch">
+                                    {{ form.active(class="form-check-input") }}
+                                    <label class="form-check-label">{{ form.active.label.text }}</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <div class="d-flex gap-2">
+                            {{ form.submit(class="btn btn-up-green btn-lg") }}
+                            <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
