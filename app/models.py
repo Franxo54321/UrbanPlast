@@ -37,6 +37,46 @@ class Category(db.Model):
         return f'<Category {self.name}>'
 
 
+class Material(db.Model):
+    __tablename__ = 'materials'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+
+    def __repr__(self):
+        return f'<Material {self.name}>'
+
+
+class Color(db.Model):
+    __tablename__ = 'colors'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    hex_code = db.Column(db.String(7), nullable=False, default='#000000')
+
+    def __repr__(self):
+        return f'<Color {self.name}>'
+
+
+product_colors = db.Table('product_colors',
+    db.Column('product_id', db.Integer, db.ForeignKey('products.id'), primary_key=True),
+    db.Column('color_id', db.Integer, db.ForeignKey('colors.id'), primary_key=True)
+)
+
+
+class ProductImage(db.Model):
+    __tablename__ = 'product_images'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    filename = db.Column(db.String(300), nullable=False)
+    position = db.Column(db.Integer, default=0)
+
+    @property
+    def url(self):
+        return f'/static/uploads/{self.filename}'
+
+
 class Product(db.Model):
     __tablename__ = 'products'
 
@@ -46,7 +86,8 @@ class Product(db.Model):
     description = db.Column(db.Text)
     price = db.Column(db.Numeric(10, 2), nullable=False)
     stock = db.Column(db.Integer, default=0)
-    material = db.Column(db.String(50))  # 'plastico', 'madera'
+    material = db.Column(db.String(50))
+    material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), nullable=True)
     image = db.Column(db.String(300))
     featured = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)
@@ -54,14 +95,37 @@ class Product(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    material_rel = db.relationship('Material', backref=db.backref('products', lazy='dynamic'))
+    colors = db.relationship('Color', secondary=product_colors, backref=db.backref('products', lazy='dynamic'))
+    images = db.relationship('ProductImage', backref='product', lazy='dynamic',
+                             cascade='all, delete-orphan', order_by='ProductImage.position')
+
     def __repr__(self):
         return f'<Product {self.name}>'
 
     @property
+    def material_name(self):
+        if self.material_rel:
+            return self.material_rel.name
+        return self.material or ''
+
+    @property
     def image_url(self):
+        first = self.images.first()
+        if first:
+            return first.url
         if self.image:
             return f'/static/uploads/{self.image}'
         return '/static/img/no-image.svg'
+
+    @property
+    def all_image_urls(self):
+        imgs = self.images.order_by(ProductImage.position).all()
+        if imgs:
+            return [img.url for img in imgs]
+        if self.image:
+            return [f'/static/uploads/{self.image}']
+        return ['/static/img/no-image.svg']
 
 
 class CartItem(db.Model):

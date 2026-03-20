@@ -55,6 +55,7 @@ def create_app(config_class=Config):
         db.create_all()
         _create_default_admin(app)
         _create_default_categories()
+        _create_default_materials()
 
     return app
 
@@ -85,4 +86,13 @@ def _create_default_categories():
     for name, slug, desc in defaults:
         if not Category.query.filter_by(slug=slug).first():
             db.session.add(Category(name=name, slug=slug, description=desc))
+    db.session.commit()
+
+
+def _create_default_materials():
+    from app.models import Material
+    defaults = ['Plástico', 'Madera']
+    for name in defaults:
+        if not Material.query.filter_by(name=name).first():
+            db.session.add(Material(name=name))
     db.session.commit()

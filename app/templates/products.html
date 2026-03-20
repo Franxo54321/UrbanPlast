@@ -34,16 +34,13 @@
                                 Todos
                             </a>
                         </li>
+                        {% for mat in materials %}
                         <li class="mb-1">
-                            <a href="{{ url_for('main.products', material='plastico') }}" class="text-decoration-none {% if current_material == 'plastico' %}fw-bold text-up-green{% endif %}">
-                                🪑 Plástico
+                            <a href="{{ url_for('main.products', material=mat.id) }}" class="text-decoration-none {% if current_material == mat.id %}fw-bold text-up-green{% endif %}">
+                                {{ mat.name }}
                             </a>
                         </li>
-                        <li class="mb-1">
-                            <a href="{{ url_for('main.products', material='madera') }}" class="text-decoration-none {% if current_material == 'madera' %}fw-bold text-up-green{% endif %}">
-                                🪵 Madera
-                            </a>
-                        </li>
+                        {% endfor %}
                     </ul>
                 </div>
             </div>
@@ -56,7 +53,7 @@
                     {% if current_category %}
                         {{ categories|selectattr('slug', 'equalto', current_category)|map(attribute='name')|first }}
                     {% elif current_material %}
-                        Material: {{ current_material|capitalize }}
+                        Material: {{ materials|selectattr('id', 'equalto', current_material)|map(attribute='name')|first }}
                     {% else %}
                         Todos los productos
                     {% endif %}
@@ -77,8 +74,8 @@
                             <h6 class="card-title">
                                 <a href="{{ url_for('main.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">{{ product.name }}</a>
                             </h6>
-                            <span class="badge {% if product.material == 'madera' %}bg-success{% else %}bg-info{% endif %} mb-2 align-self-start">
-                                {{ product.material|capitalize }}
+                            <span class="badge bg-info mb-2 align-self-start">
+                                {{ product.material_name }}
                             </span>
                             {% if product.stock > 0 %}
                                 <small class="text-success"><i class="bi bi-check-circle"></i> En stock</small>

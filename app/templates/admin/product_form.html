@@ -5,27 +5,7 @@
 <div class="container-fluid py-4">
     <div class="row">
         <!-- Sidebar -->
-        <div class="col-md-2">
-            <div class="card shadow-sm">
-                <div class="card-header bg-up-green text-white">
-                    <i class="bi bi-gear-fill"></i> Admin
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
-                        <i class="bi bi-box-seam"></i> Productos
-                    </a>
-                    <a href="{{ url_for('admin.product_create') }}" class="list-group-item list-group-item-action active">
-                        <i class="bi bi-plus-circle"></i> Nuevo Producto
-                    </a>
-                    <a href="{{ url_for('main.index') }}" class="list-group-item list-group-item-action text-muted">
-                        <i class="bi bi-arrow-left"></i> Volver al sitio
-                    </a>
-                </div>
-            </div>
-        </div>
+        <div class="col-md-2">{% set active_page = 'product_new' %}{% include 'admin/_sidebar.html' %}</div>
 
         <!-- Content -->
         <div class="col-md-10">
@@ -54,17 +34,32 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
+                                <!-- Imágenes múltiples -->
                                 <div class="mb-3">
-                                    <label class="form-label fw-semibold">{{ form.image.label.text }}</label>
-                                    {{ form.image(class="form-control") }}
-                                    {% for error in form.image.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                                    {% if editing and product.image %}
-                                    <div class="mt-2">
-                                        <img src="{{ product.image_url }}" class="img-thumbnail" style="max-height: 150px;">
-                                        <small class="d-block text-muted">Imagen actual</small>
-                                    </div>
-                                    {% endif %}
+                                    <label class="form-label fw-semibold"><i class="bi bi-images"></i> Imágenes</label>
+                                    {{ form.images(class="form-control", multiple="multiple", accept="image/*") }}
+                                    <small class="text-muted">Podés seleccionar varias imágenes a la vez</small>
+                                    {% for error in form.images.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                                 </div>
+                                {% if editing and product.images.count() > 0 %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Imágenes actuales</label>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for img in product.images.all() %}
+                                        <div class="position-relative" style="width:80px;">
+                                            <img src="{{ img.url }}" class="img-thumbnail" style="width:80px;height:80px;object-fit:cover;">
+                                            <div class="form-check mt-1">
+                                                <input class="form-check-input" type="checkbox" name="delete_images" value="{{ img.id }}" id="delimg{{ img.id }}">
+                                                <label class="form-check-label small text-danger" for="delimg{{ img.id }}">
+                                                    <i class="bi bi-trash"></i>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <small class="text-muted">Marcá las que querés eliminar</small>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -80,14 +75,36 @@
                                 {% for error in form.stock.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-semibold">{{ form.material.label.text }}</label>
-                                {{ form.material(class="form-select" + (" is-invalid" if form.material.errors else "")) }}
-                                {% for error in form.material.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                <label class="form-label fw-semibold">{{ form.material_id.label.text }}</label>
+                                {{ form.material_id(class="form-select" + (" is-invalid" if form.material_id.errors else "")) }}
+                                {% for error in form.material_id.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">{{ form.category_id.label.text }}</label>
                                 {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
                                 {% for error in form.category_id.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Colores -->
+                        <div class="row g-3 mt-2">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold"><i class="bi bi-palette"></i> Colores disponibles</label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    {% for value, label in form.color_ids.choices %}
+                                    {% set color_obj = None %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="color_ids" value="{{ value }}" id="color_{{ value }}"
+                                               {% if value in (form.color_ids.data or []) %}checked{% endif %}>
+                                        <label class="form-check-label d-flex align-items-center gap-1" for="color_{{ value }}">
+                                            {{ label }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% if not form.color_ids.choices %}
+                                <small class="text-muted">No hay colores creados. <a href="{{ url_for('admin.color_create') }}">Crear uno</a></small>
+                                {% endif %}
                             </div>
                         </div>
 

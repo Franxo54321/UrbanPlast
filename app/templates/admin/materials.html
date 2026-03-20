@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Admin - Materiales{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-2">{% set active_page = 'materials' %}{% include 'admin/_sidebar.html' %}</div>
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-layers"></i> Materiales</h2>
+                <a href="{{ url_for('admin.material_create') }}" class="btn btn-up-green"><i class="bi bi-plus-circle"></i> Nuevo Material</a>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-dark">
+                            <tr><th>Nombre</th><th>Productos</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for mat in materials %}
+                            <tr>
+                                <td class="fw-semibold">{{ mat.name }}</td>
+                                <td>{{ mat.products.count() }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin.material_edit', material_id=mat.id) }}" class="btn btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                                        <form method="POST" action="{{ url_for('admin.material_delete', material_id=mat.id) }}" class="d-inline" onsubmit="return confirm('¿Eliminar este material?')">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center py-4 text-muted">No hay materiales cargados</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

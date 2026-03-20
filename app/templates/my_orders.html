@@ -27,9 +27,9 @@
                         <td>{{ order.created_at.strftime('%d/%m/%Y') }}</td>
                         <td>{{ order.items.count() }} item{{ 's' if order.items.count() != 1 }}</td>
                         <td>
-                            {% if order.payment_method == 'mercadopago' %}💙 MP
-                            {% elif order.payment_method == 'tarjeta' %}💳 Tarjeta
-                            {% else %}🏦 Transf.{% endif %}
+                            {% if order.payment_method == 'mercadopago' %}MercadoPago
+                            {% elif order.payment_method == 'tarjeta' %}Tarjeta
+                            {% else %}Transferencia{% endif %}
                         </td>
                         <td class="fw-bold">${{ "%.2f"|format(order.total) }}</td>
                         <td>

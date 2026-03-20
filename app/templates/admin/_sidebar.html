@@ -1,0 +1,31 @@
+<div class="card shadow-sm">
+    <div class="card-header bg-up-green text-white">
+        <i class="bi bi-gear-fill"></i> Admin
+    </div>
+    <div class="list-group list-group-flush">
+        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action {% if active_page == 'orders' %}active{% endif %}">
+            <i class="bi bi-bag-check"></i> Pedidos
+        </a>
+        <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action {% if active_page == 'products' %}active{% endif %}">
+            <i class="bi bi-box-seam"></i> Productos
+        </a>
+        <a href="{{ url_for('admin.product_create') }}" class="list-group-item list-group-item-action {% if active_page == 'product_new' %}active{% endif %}">
+            <i class="bi bi-plus-circle"></i> Nuevo Producto
+        </a>
+        <a href="{{ url_for('admin.categories_list') }}" class="list-group-item list-group-item-action {% if active_page == 'categories' %}active{% endif %}">
+            <i class="bi bi-tags"></i> Categorías
+        </a>
+        <a href="{{ url_for('admin.materials') }}" class="list-group-item list-group-item-action {% if active_page == 'materials' %}active{% endif %}">
+            <i class="bi bi-layers"></i> Materiales
+        </a>
+        <a href="{{ url_for('admin.colors') }}" class="list-group-item list-group-item-action {% if active_page == 'colors' %}active{% endif %}">
+            <i class="bi bi-palette"></i> Colores
+        </a>
+        <a href="{{ url_for('main.index') }}" class="list-group-item list-group-item-action text-muted">
+            <i class="bi bi-arrow-left"></i> Volver al sitio
+        </a>
+    </div>
+</div>

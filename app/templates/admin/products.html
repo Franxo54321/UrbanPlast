@@ -5,27 +5,7 @@
 <div class="container-fluid py-4">
     <div class="row">
         <!-- Sidebar -->
-        <div class="col-md-2">
-            <div class="card shadow-sm">
-                <div class="card-header bg-up-green text-white">
-                    <i class="bi bi-gear-fill"></i> Admin
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action active">
-                        <i class="bi bi-box-seam"></i> Productos
-                    </a>
-                    <a href="{{ url_for('admin.product_create') }}" class="list-group-item list-group-item-action">
-                        <i class="bi bi-plus-circle"></i> Nuevo Producto
-                    </a>
-                    <a href="{{ url_for('main.index') }}" class="list-group-item list-group-item-action text-muted">
-                        <i class="bi bi-arrow-left"></i> Volver al sitio
-                    </a>
-                </div>
-            </div>
-        </div>
+        <div class="col-md-2">{% set active_page = 'products' %}{% include 'admin/_sidebar.html' %}</div>
 
         <!-- Content -->
         <div class="col-md-10">
@@ -61,8 +41,8 @@
                                 <td class="fw-semibold">{{ product.name }}</td>
                                 <td>{{ product.category.name }}</td>
                                 <td>
-                                    <span class="badge {% if product.material == 'madera' %}bg-success{% else %}bg-info{% endif %}">
-                                        {{ product.material|capitalize }}
+                                    <span class="badge bg-info">
+                                        {{ product.material_name|capitalize }}
                                     </span>
                                 </td>
                                 <td>${{ "%.2f"|format(product.price) }}</td>

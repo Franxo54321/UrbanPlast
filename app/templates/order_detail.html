@@ -31,9 +31,9 @@
                         <div class="col-md-2">
                             <h6 class="fw-bold"><i class="bi bi-wallet2"></i> Pago</h6>
                             <p class="text-muted">
-                                {% if order.payment_method == 'mercadopago' %}💙 MercadoPago
-                                {% elif order.payment_method == 'tarjeta' %}💳 Tarjeta
-                                {% else %}🏦 Transferencia{% endif %}
+                                {% if order.payment_method == 'mercadopago' %} MercadoPago
+                                {% elif order.payment_method == 'tarjeta' %} Tarjeta
+                                {% else %} Transferencia{% endif %}
                             </p>
                         </div>
                     </div>

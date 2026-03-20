@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Editar{% else %}Nuevo{% endif %} Material{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-2">{% set active_page = 'materials' %}{% include 'admin/_sidebar.html' %}</div>
+        <div class="col-md-10">
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('admin.materials') }}" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+                <h2 class="mb-0">{% if editing %}Editar: {{ material.name }}{% else %}Nuevo Material{% endif %}</h2>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3" style="max-width:400px;">
+                            <label class="form-label fw-semibold">{{ form.name.label.text }}</label>
+                            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Ej: Plástico reciclado") }}
+                            {% for e in form.name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                        <hr>
+                        <div class="d-flex gap-2">
+                            {{ form.submit(class="btn btn-up-green btn-lg") }}
+                            <a href="{{ url_for('admin.materials') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

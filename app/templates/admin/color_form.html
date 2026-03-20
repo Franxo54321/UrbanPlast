@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Editar{% else %}Nuevo{% endif %} Color{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-2">{% set active_page = 'colors' %}{% include 'admin/_sidebar.html' %}</div>
+        <div class="col-md-10">
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('admin.colors') }}" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+                <h2 class="mb-0">{% if editing %}Editar: {{ color.name }}{% else %}Nuevo Color{% endif %}</h2>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">{{ form.name.label.text }}</label>
+                                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Ej: Rojo") }}
+                                {% for e in form.name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">{{ form.hex_code.label.text }}</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="colorPicker" value="{{ form.hex_code.data or '#000000' }}" onchange="document.getElementById('hex_code').value=this.value">
+                                    {{ form.hex_code(class="form-control" + (" is-invalid" if form.hex_code.errors else ""), id="hex_code") }}
+                                </div>
+                                {% for e in form.hex_code.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="d-flex gap-2">
+                            {{ form.submit(class="btn btn-up-green btn-lg") }}
+                            <a href="{{ url_for('admin.colors') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('hex_code').addEventListener('input', function() {
+    if (/^#[0-9a-fA-F]{6}$/.test(this.value)) {
+        document.getElementById('colorPicker').value = this.value;
+    }
+});
+</script>
+{% endblock %}

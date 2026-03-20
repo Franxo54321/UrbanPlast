@@ -46,26 +46,18 @@
                 </a>
             </div>
             {% endfor %}
+            {% for mat in materials %}
             <div class="col-6 col-md-2">
-                <a href="{{ url_for('main.products', material='plastico') }}" class="text-decoration-none">
+                <a href="{{ url_for('main.products', material=mat.id) }}" class="text-decoration-none">
                     <div class="card text-center border-0 shadow-sm h-100 category-card">
                         <div class="card-body py-4">
-                            <span class="fs-2">🪑</span>
-                            <p class="mb-0 mt-2 fw-semibold text-dark">Plástico</p>
+                            <i class="bi bi-layers fs-2 text-up-wood"></i>
+                            <p class="mb-0 mt-2 fw-semibold text-dark">{{ mat.name }}</p>
                         </div>
                     </div>
                 </a>
             </div>
-            <div class="col-6 col-md-2">
-                <a href="{{ url_for('main.products', material='madera') }}" class="text-decoration-none">
-                    <div class="card text-center border-0 shadow-sm h-100 category-card">
-                        <div class="card-body py-4">
-                            <span class="fs-2">🪵</span>
-                            <p class="mb-0 mt-2 fw-semibold text-dark">Madera</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
+            {% endfor %}
         </div>
     </div>
 </section>
