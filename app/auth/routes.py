@@ -55,9 +55,10 @@ def register():
 
         if mail_configured:
             import threading
+            _app = current_app._get_current_object()
             threading.Thread(
                 target=_send_verification_email,
-                args=(user.id,),
+                args=(user.id, _app),
                 daemon=True
             ).start()
             flash('¡Cuenta creada! Te enviamos un email para verificar tu cuenta.', 'success')
@@ -92,23 +93,21 @@ def resend_verification():
         user.verification_token = token
         db.session.commit()
         import threading
+        _app = current_app._get_current_object()
         threading.Thread(
             target=_send_verification_email,
-            args=(user.id,),
+            args=(user.id, _app),
             daemon=True
         ).start()
     flash('Si el email existe y no está verificado, te reenviamos el link.', 'info')
     return redirect(url_for('auth.login'))
 
 
-def _send_verification_email(user_id):
-    from app import create_app, mail
+def _send_verification_email(user_id, app):
+    from app import mail
     from app.models import User as _User
-    try:
-        _app = current_app._get_current_object()
-    except RuntimeError:
-        return
-    with _app.app_context():
+    import logging
+    with app.app_context():
         try:
             from flask_mail import Message
             user = db.session.get(_User, user_id)
@@ -125,8 +124,8 @@ def _send_verification_email(user_id):
                 html=html
             )
             mail.send(msg)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).error(f'Error enviando email de verificación: {e}')
 
 
 @auth_bp.route('/logout')
