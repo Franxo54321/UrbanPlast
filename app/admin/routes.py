@@ -472,6 +472,64 @@ def coupon_delete(coupon_id):
     return redirect(url_for('admin.coupons'))
 
 
+# ──────────────────── Usuarios ────────────────────
+
+@admin_bp.route('/usuarios')
+@admin_required
+def users():
+    all_users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=all_users)
+
+
+@admin_bp.route('/usuarios/<int:user_id>/eliminar', methods=['POST'])
+@admin_required
+def user_delete(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.is_admin:
+        flash('No podés eliminar una cuenta de administrador.', 'danger')
+        return redirect(url_for('admin.users'))
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'Usuario {user.email} eliminado.', 'success')
+    return redirect(url_for('admin.users'))
+
+
+@admin_bp.route('/usuarios/<int:user_id>/resetear-contrasena', methods=['POST'])
+@admin_required
+def user_reset_password(user_id):
+    import secrets as _secrets
+    user = User.query.get_or_404(user_id)
+    new_password = _secrets.token_urlsafe(10)
+    user.set_password(new_password)
+    db.session.commit()
+
+    # Intentar enviar por email
+    try:
+        from flask_mail import Message
+        from app import mail
+        if current_app.config.get('MAIL_USERNAME'):
+            from datetime import datetime as _dt
+            html = f"""
+            <p>Hola <strong>{user.username}</strong>,</p>
+            <p>Un administrador reseteó tu contraseña en UrbanPlast.</p>
+            <p>Tu nueva contraseña temporal es: <strong style="font-size:18px;">{new_password}</strong></p>
+            <p>Por favor cambiala desde tu perfil una vez que ingreses.</p>
+            """
+            msg = Message(
+                subject='UrbanPlast — Tu contraseña fue reseteada',
+                recipients=[user.email],
+                html=html
+            )
+            mail.send(msg)
+            flash(f'Contraseña reseteada y enviada por email a {user.email}.', 'success')
+        else:
+            flash(f'Contraseña reseteada. Nueva contraseña: {new_password}', 'warning')
+    except Exception:
+        flash(f'Contraseña reseteada. Nueva contraseña: {new_password}', 'warning')
+
+    return redirect(url_for('admin.users'))
+
+
 # ──────────────────── Pedidos ────────────────────
 
 @admin_bp.route('/pedidos')

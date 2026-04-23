@@ -27,6 +27,9 @@
         <a href="{{ url_for('admin.colors') }}" class="list-group-item list-group-item-action {% if active_page == 'colors' %}active{% endif %}">
             <i class="bi bi-palette"></i> Colores
         </a>
+        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}">
+            <i class="bi bi-people"></i> Usuarios
+        </a>
         <a href="{{ url_for('main.index') }}" class="list-group-item list-group-item-action text-muted">
             <i class="bi bi-arrow-left"></i> Volver al sitio
         </a>

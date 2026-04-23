@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Admin - Usuarios{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-2">{% set active_page = 'users' %}{% include 'admin/_sidebar.html' %}</div>
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">Usuarios <span class="badge bg-secondary fs-6">{{ users|length }}</span></h2>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Usuario</th>
+                                <th>Email</th>
+                                <th>Verificado</th>
+                                <th>Rol</th>
+                                <th>Registrado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td class="text-muted small">{{ user.id }}</td>
+                                <td><strong>{{ user.username }}</strong></td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    {% if user.email_verified %}
+                                        <span class="badge bg-success">Verificado</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="badge bg-up-green">Admin</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">Cliente</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if not user.is_admin %}
+                                    <form method="POST" action="{{ url_for('admin.user_reset_password', user_id=user.id) }}" class="d-inline" onsubmit="return confirm('¿Resetear contraseña de {{ user.username }}?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Resetear contraseña">
+                                            <i class="bi bi-key"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('admin.user_delete', user_id=user.id) }}" class="d-inline" onsubmit="return confirm('¿Eliminar a {{ user.username }}? Esta acción no se puede deshacer.')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar usuario">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted small">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
