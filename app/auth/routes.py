@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+import secrets
+from datetime import datetime
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db, limiter
 from app.models import User
@@ -17,6 +19,9 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
+            if not user.email_verified:
+                flash('Tenés que verificar tu email antes de iniciar sesión. Revisá tu bandeja de entrada.', 'warning')
+                return render_template('auth/login.html', form=form)
             login_user(user, remember=form.remember.data)
             next_page = request.args.get('next')
             if next_page and not _is_safe_url(next_page):
@@ -36,17 +41,72 @@ def register():
 
     form = RegisterForm()
     if form.validate_on_submit():
+        token = secrets.token_urlsafe(32)
         user = User(
             username=form.username.data,
-            email=form.email.data
+            email=form.email.data,
+            email_verified=False,
+            verification_token=token
         )
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
-        flash('¡Cuenta creada! Ya podés iniciar sesión.', 'success')
+
+        _send_verification_email(user)
+
+        flash('¡Cuenta creada! Te enviamos un email para verificar tu cuenta.', 'success')
         return redirect(url_for('auth.login'))
 
     return render_template('auth/register.html', form=form)
+
+
+@auth_bp.route('/verificar/<token>')
+def verify_email(token):
+    user = User.query.filter_by(verification_token=token).first()
+    if not user:
+        flash('El link de verificación es inválido o ya fue usado.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    user.email_verified = True
+    user.verification_token = None
+    db.session.commit()
+    flash('¡Email verificado! Ya podés iniciar sesión.', 'success')
+    return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/reenviar-verificacion', methods=['POST'])
+@limiter.limit("3 per minute")
+def resend_verification():
+    email = request.form.get('email', '').strip()
+    user = User.query.filter_by(email=email).first()
+    if user and not user.email_verified:
+        token = secrets.token_urlsafe(32)
+        user.verification_token = token
+        db.session.commit()
+        _send_verification_email(user)
+    flash('Si el email existe y no está verificado, te reenviamos el link.', 'info')
+    return redirect(url_for('auth.login'))
+
+
+def _send_verification_email(user):
+    try:
+        from flask_mail import Message
+        from app import mail
+        if not current_app.config.get('MAIL_USERNAME'):
+            return
+        verify_url = url_for('auth.verify_email', token=user.verification_token, _external=True)
+        html = render_template('emails/verify_email.html',
+                               username=user.username,
+                               verify_url=verify_url,
+                               now=datetime.utcnow())
+        msg = Message(
+            subject='UrbanPlast — Verificá tu cuenta',
+            recipients=[user.email],
+            html=html
+        )
+        mail.send(msg)
+    except Exception:
+        pass
 
 
 @auth_bp.route('/logout')

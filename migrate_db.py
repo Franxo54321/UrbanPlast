@@ -142,6 +142,35 @@ MIGRATION_SQL = [
     CREATE INDEX IF NOT EXISTS ix_order_status_history_order_id ON order_status_history(order_id);
     """,
 
+    # ── Verificación de email en users ────────────────────────────────────────
+
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='users' AND column_name='email_verified'
+        ) THEN
+            ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT FALSE;
+        END IF;
+    END $$;
+    """,
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='users' AND column_name='verification_token'
+        ) THEN
+            ALTER TABLE users ADD COLUMN verification_token VARCHAR(100);
+        END IF;
+    END $$;
+    """,
+    # El admin ya existe, marcarlo como verificado
+    """
+    UPDATE users SET email_verified = TRUE WHERE is_admin = TRUE;
+    """,
+
     # ── Nuevas columnas en orders ──────────────────────────────────────────────
 
     """
