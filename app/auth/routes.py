@@ -113,7 +113,8 @@ def _send_verification_email(user_id, app):
             user = db.session.get(_User, user_id)
             if not user or not user.verification_token:
                 return
-            verify_url = url_for('auth.verify_email', token=user.verification_token, _external=True)
+            base_url = app.config.get('BASE_URL', '').rstrip('/')
+            verify_url = f"{base_url}/auth/verificar/{user.verification_token}"
             html = render_template('emails/verify_email.html',
                                    username=user.username,
                                    verify_url=verify_url,

@@ -15,6 +15,19 @@ def _get_database_url():
     return 'sqlite:///' + os.path.join(basedir, 'muebles.db')
 
 
+def _get_base_url():
+    railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '').strip()
+    if railway_domain:
+        if railway_domain.startswith('http://') or railway_domain.startswith('https://'):
+            return railway_domain
+        return f'https://{railway_domain}'
+
+    base_url = os.environ.get('BASE_URL', 'http://127.0.0.1:5000').strip()
+    if base_url.startswith('http://') or base_url.startswith('https://'):
+        return base_url
+    return f'https://{base_url}'
+
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', os.urandom(32).hex())
     SQLALCHEMY_DATABASE_URI = _get_database_url()
@@ -40,5 +53,5 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@urbanplast.com')
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@urbanplast.com')
 
-    # URL base del sitio (para callbacks de MercadoPago en producción)
-    BASE_URL = os.environ.get('RAILWAY_PUBLIC_DOMAIN', os.environ.get('BASE_URL', 'http://127.0.0.1:5000'))
+    # URL base del sitio (para callbacks de MercadoPago y links de email en producción)
+    BASE_URL = _get_base_url()
