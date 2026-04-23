@@ -34,13 +34,6 @@ python run.py
 
 La app corre en `http://localhost:5000`
 
-## Usuario admin por defecto
-
-- **Email:** admin@muebles.com
-- **Contraseña:** admin123
-
-> ⚠️ Cambiá la contraseña del admin en producción.
-
 ## Deploy con Gunicorn (Linux)
 
 ```bash
