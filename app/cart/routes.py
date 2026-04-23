@@ -1,10 +1,17 @@
+import hmac
+import hashlib
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from app import db
 from app.models import Product, CartItem, Order, OrderItem
 from app.auth.forms import CheckoutForm
 
 cart_bp = Blueprint('cart', __name__, template_folder='templates')
+
+
+def _cart_count(user_id):
+    return db.session.query(func.sum(CartItem.quantity)).filter_by(user_id=user_id).scalar() or 0
 
 
 @cart_bp.route('/')
@@ -33,17 +40,18 @@ def add_to_cart():
         return jsonify({'error': 'Producto no encontrado'}), 404
 
     item = CartItem.query.filter_by(user_id=current_user.id, product_id=product_id).first()
+    new_quantity = (item.quantity if item else 0) + quantity
+    if product.stock < new_quantity:
+        return jsonify({'error': 'Stock insuficiente'}), 400
 
     if item:
-        item.quantity += quantity
+        item.quantity = new_quantity
     else:
         item = CartItem(user_id=current_user.id, product_id=product_id, quantity=quantity)
         db.session.add(item)
 
     db.session.commit()
-
-    cart_count = sum(i.quantity for i in CartItem.query.filter_by(user_id=current_user.id).all())
-    return jsonify({'success': True, 'cart_count': cart_count, 'message': 'Producto agregado al carrito'})
+    return jsonify({'success': True, 'cart_count': _cart_count(current_user.id), 'message': 'Producto agregado al carrito'})
 
 
 @cart_bp.route('/actualizar', methods=['POST'])
@@ -61,18 +69,20 @@ def update_cart():
     if not item:
         return jsonify({'error': 'Item no encontrado'}), 404
 
+    if item.product.stock < quantity:
+        return jsonify({'error': 'Stock insuficiente'}), 400
+
     item.quantity = quantity
     db.session.commit()
 
     items = CartItem.query.filter_by(user_id=current_user.id).all()
     total = sum(i.subtotal for i in items)
-    cart_count = sum(i.quantity for i in items)
 
     return jsonify({
         'success': True,
         'subtotal': str(item.subtotal),
         'total': str(total),
-        'cart_count': cart_count
+        'cart_count': _cart_count(current_user.id)
     })
 
 
@@ -92,16 +102,14 @@ def remove_from_cart():
 
     items = CartItem.query.filter_by(user_id=current_user.id).all()
     total = sum(i.subtotal for i in items)
-    cart_count = sum(i.quantity for i in items)
 
-    return jsonify({'success': True, 'total': str(total), 'cart_count': cart_count})
+    return jsonify({'success': True, 'total': str(total), 'cart_count': _cart_count(current_user.id)})
 
 
 @cart_bp.route('/count')
 @login_required
 def cart_count():
-    count = sum(i.quantity for i in CartItem.query.filter_by(user_id=current_user.id).all())
-    return jsonify({'count': count})
+    return jsonify({'count': _cart_count(current_user.id)})
 
 
 @cart_bp.route('/checkout', methods=['GET', 'POST'])
@@ -208,6 +216,36 @@ def _create_mp_preference(order):
     return None
 
 
+def _verify_mp_webhook(req):
+    """Verify MercadoPago webhook signature using HMAC-SHA256.
+    Only enforced when MP_WEBHOOK_SECRET is set in config."""
+    secret = current_app.config.get('MP_WEBHOOK_SECRET', '')
+    if not secret:
+        return True
+
+    x_signature = req.headers.get('x-signature', '')
+    x_request_id = req.headers.get('x-request-id', '')
+    if not x_signature:
+        return False
+
+    ts = v1 = None
+    for part in x_signature.split(','):
+        key, _, value = part.partition('=')
+        if key.strip() == 'ts':
+            ts = value.strip()
+        elif key.strip() == 'v1':
+            v1 = value.strip()
+
+    if not ts or not v1:
+        return False
+
+    data = req.get_json(silent=True) or {}
+    data_id = str(data.get('data', {}).get('id', ''))
+    template = f"id:{data_id};request-id:{x_request_id};ts:{ts};"
+    expected = hmac.new(secret.encode(), template.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, v1)
+
+
 @cart_bp.route('/mp/success')
 @login_required
 def mp_success():
@@ -247,7 +285,9 @@ def mp_pending():
 @cart_bp.route('/mp/webhook', methods=['POST'])
 def mp_webhook():
     """Webhook de MercadoPago para notificaciones de pago (IPN)."""
-    from app import csrf
+    if not _verify_mp_webhook(request):
+        return jsonify({'status': 'unauthorized'}), 401
+
     data = request.get_json(silent=True) or {}
     if data.get('type') == 'payment':
         access_token = current_app.config.get('MP_ACCESS_TOKEN', '')

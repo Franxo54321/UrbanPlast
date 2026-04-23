@@ -17,7 +17,7 @@ class RegisterForm(FlaskForm):
     ])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Contraseña', validators=[
-        DataRequired(), Length(min=6, message='La contraseña debe tener al menos 6 caracteres')
+        DataRequired(), Length(min=8, message='La contraseña debe tener al menos 8 caracteres')
     ])
     confirm_password = PasswordField('Confirmar Contraseña', validators=[
         DataRequired(), EqualTo('password', message='Las contraseñas no coinciden')
@@ -44,7 +44,7 @@ class ProfileForm(FlaskForm):
 class ChangePasswordForm(FlaskForm):
     current_password = PasswordField('Contraseña actual', validators=[DataRequired()])
     new_password = PasswordField('Nueva contraseña', validators=[
-        DataRequired(), Length(min=6, message='Mínimo 6 caracteres')
+        DataRequired(), Length(min=8, message='Mínimo 8 caracteres')
     ])
     confirm_password = PasswordField('Confirmar nueva contraseña', validators=[
         DataRequired(), EqualTo('new_password', message='Las contraseñas no coinciden')
@@ -64,9 +64,9 @@ class CheckoutForm(FlaskForm):
     country = StringField('País', validators=[Optional(), Length(max=100)], default='Argentina')
     phone = StringField('Teléfono', validators=[DataRequired(), Length(max=50)])
     payment_method = SelectField('Método de pago', choices=[
-        ('mercadopago', '💙 MercadoPago'),
-        ('tarjeta', '💳 Tarjeta de Crédito / Débito'),
-        ('transferencia', '🏦 Transferencia Bancaria'),
+        ('mercadopago', 'MercadoPago'),
+        ('tarjeta', 'Tarjeta de Crédito / Débito'),
+        ('transferencia', 'Transferencia Bancaria'),
     ], validators=[DataRequired()])
     notes = TextAreaField('Notas (opcional)', validators=[Optional(), Length(max=500)])
     submit = SubmitField('Confirmar pedido')

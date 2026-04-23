@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,9 +23,13 @@ class Config:
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max upload
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 
+    # Session
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
+
     # MercadoPago
     MP_ACCESS_TOKEN = os.environ.get('MP_ACCESS_TOKEN', '')
     MP_PUBLIC_KEY = os.environ.get('MP_PUBLIC_KEY', '')
+    MP_WEBHOOK_SECRET = os.environ.get('MP_WEBHOOK_SECRET', '')
 
     # URL base del sitio (para callbacks de MercadoPago en producción)
     BASE_URL = os.environ.get('RAILWAY_PUBLIC_DOMAIN', os.environ.get('BASE_URL', 'http://127.0.0.1:5000'))

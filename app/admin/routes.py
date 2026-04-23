@@ -29,9 +29,22 @@ def _save_image(file):
     ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
     if ext not in current_app.config['ALLOWED_EXTENSIONS']:
         return None
+
+    file_bytes = file.read()
+
+    # Reject if content doesn't parse as a valid image (prevents disguised files)
+    try:
+        from PIL import Image
+        import io as _io
+        img = Image.open(_io.BytesIO(file_bytes))
+        img.verify()
+    except Exception:
+        return None
+
     unique_name = f"{uuid.uuid4().hex}.{ext}"
     filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_name)
-    file.save(filepath)
+    with open(filepath, 'wb') as out:
+        out.write(file_bytes)
     return unique_name
 
 
