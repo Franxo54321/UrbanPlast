@@ -45,7 +45,7 @@
                                 {% for value, label in form.delivery_type.choices %}
                                 <div class="col-6">
                                     <div class="form-check border rounded-3 p-3 payment-card {% if form.delivery_type.data == value %}selected{% endif %}" onclick="selectDelivery(this, '{{ value }}')">
-                                        <input class="form-check-input" type="radio" name="{{ form.delivery_type.name }}" id="del_{{ value }}" value="{{ value }}" {% if form.delivery_type.data == value %}checked{% endif %}>
+                                        <input class="form-check-input" type="radio" name="{{ form.delivery_type.name }}" id="del_{{ value }}" value="{{ value }}" {% if form.delivery_type.data == value or loop.first %}checked{% endif %}>
                                         <label class="form-check-label fw-semibold" for="del_{{ value }}">{{ label }}</label>
                                     </div>
                                 </div>
@@ -187,7 +187,7 @@
                     </div>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)"><i class="bi bi-arrow-left"></i> Volver</button>
-                        <button type="submit" class="btn btn-up-green btn-lg flex-grow-1" id="confirmBtn">
+                        <button type="submit" class="btn btn-up-green btn-lg flex-grow-1" id="confirmBtn" onclick="return validateStep3()">
                             <i class="bi bi-check-circle"></i> Confirmar pedido — <span id="confirmTotal">${{ "%.2f"|format(subtotal) }}</span>
                         </button>
                     </div>
@@ -206,6 +206,12 @@ const subtotal = {{ subtotal | float }};
 
 function goToStep(step) {
     if (step > 1 && currentStep === 1) {
+        const deliverySelected = document.querySelector('[name="delivery_type"]:checked');
+        if (!deliverySelected) {
+            document.querySelectorAll('#step1 .payment-card').forEach(c => c.classList.add('border-danger'));
+            alert('Por favor elegí un tipo de entrega.');
+            return;
+        }
         const fields = ['address', 'city', 'province', 'postal_code', 'phone'];
         let valid = true;
         fields.forEach(name => {
@@ -248,6 +254,16 @@ function selectDelivery(card, value) {
     document.querySelectorAll('#step1 .payment-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     card.querySelector('input[type=radio]').checked = true;
+}
+
+function validateStep3() {
+    const paymentSelected = document.querySelector('[name="payment_method"]:checked');
+    if (!paymentSelected) {
+        document.querySelectorAll('#step3 .payment-card').forEach(c => c.classList.add('border-danger'));
+        alert('Por favor elegí un método de pago.');
+        return false;
+    }
+    return true;
 }
 
 function applyCoupon() {
