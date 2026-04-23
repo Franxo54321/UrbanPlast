@@ -1,7 +1,6 @@
 """
 Script para migrar la base de datos PostgreSQL en Railway.
-Agrega las nuevas tablas (materials, colors, product_colors, product_images)
-y la columna material_id a products.
+Crea/actualiza todas las tablas necesarias de forma segura (idempotente).
 """
 from app import create_app, db
 from sqlalchemy import text
@@ -9,14 +8,14 @@ from sqlalchemy import text
 app = create_app()
 
 MIGRATION_SQL = [
-    # 1. Tabla materials
+    # ── Tablas originales ──────────────────────────────────────────────────────
+
     """
     CREATE TABLE IF NOT EXISTS materials (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) UNIQUE NOT NULL
     );
     """,
-    # 2. Tabla colors
     """
     CREATE TABLE IF NOT EXISTS colors (
         id SERIAL PRIMARY KEY,
@@ -24,7 +23,6 @@ MIGRATION_SQL = [
         hex_code VARCHAR(7) NOT NULL DEFAULT '#000000'
     );
     """,
-    # 3. Tabla product_colors (many-to-many)
     """
     CREATE TABLE IF NOT EXISTS product_colors (
         product_id INTEGER NOT NULL REFERENCES products(id),
@@ -32,7 +30,6 @@ MIGRATION_SQL = [
         PRIMARY KEY (product_id, color_id)
     );
     """,
-    # 4. Tabla product_images
     """
     CREATE TABLE IF NOT EXISTS product_images (
         id SERIAL PRIMARY KEY,
@@ -41,7 +38,6 @@ MIGRATION_SQL = [
         position INTEGER DEFAULT 0
     );
     """,
-    # 5. Columna material_id en products (nullable, sin FK todavía)
     """
     DO $$
     BEGIN
@@ -53,7 +49,6 @@ MIGRATION_SQL = [
         END IF;
     END $$;
     """,
-    # 6. FK para material_id
     """
     DO $$
     BEGIN
@@ -67,16 +62,12 @@ MIGRATION_SQL = [
         END IF;
     END $$;
     """,
-    # 7. Insertar materiales por defecto
     """
-    INSERT INTO materials (name) VALUES ('Plástico')
-    ON CONFLICT (name) DO NOTHING;
+    INSERT INTO materials (name) VALUES ('Plástico') ON CONFLICT (name) DO NOTHING;
     """,
     """
-    INSERT INTO materials (name) VALUES ('Madera')
-    ON CONFLICT (name) DO NOTHING;
+    INSERT INTO materials (name) VALUES ('Madera') ON CONFLICT (name) DO NOTHING;
     """,
-    # 8. Migrar datos existentes: asignar material_id según campo material
     """
     UPDATE products SET material_id = (SELECT id FROM materials WHERE name = 'Plástico')
     WHERE material = 'plastico' AND material_id IS NULL;
@@ -84,6 +75,107 @@ MIGRATION_SQL = [
     """
     UPDATE products SET material_id = (SELECT id FROM materials WHERE name = 'Madera')
     WHERE material = 'madera' AND material_id IS NULL;
+    """,
+
+    # ── Nuevas tablas (mejoras v2) ─────────────────────────────────────────────
+
+    # Cupones
+    """
+    CREATE TABLE IF NOT EXISTS coupons (
+        id SERIAL PRIMARY KEY,
+        code VARCHAR(50) UNIQUE NOT NULL,
+        discount_type VARCHAR(10) NOT NULL,
+        discount_value NUMERIC(10,2) NOT NULL,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        uses_left INTEGER,
+        min_order NUMERIC(10,2) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS ix_coupons_code ON coupons(code);
+    """,
+
+    # Reseñas
+    """
+    CREATE TABLE IF NOT EXISTS reviews (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        product_id INTEGER NOT NULL REFERENCES products(id),
+        rating INTEGER NOT NULL,
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS ix_reviews_user_id ON reviews(user_id);
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS ix_reviews_product_id ON reviews(product_id);
+    """,
+
+    # Wishlist
+    """
+    CREATE TABLE IF NOT EXISTS wishlist (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        product_id INTEGER NOT NULL REFERENCES products(id),
+        created_at TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT uq_wishlist_user_product UNIQUE (user_id, product_id)
+    );
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS ix_wishlist_user_id ON wishlist(user_id);
+    """,
+
+    # Historial de estados de pedidos
+    """
+    CREATE TABLE IF NOT EXISTS order_status_history (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        status VARCHAR(30) NOT NULL,
+        note VARCHAR(200),
+        changed_at TIMESTAMP DEFAULT NOW()
+    );
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS ix_order_status_history_order_id ON order_status_history(order_id);
+    """,
+
+    # ── Nuevas columnas en orders ──────────────────────────────────────────────
+
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='orders' AND column_name='tracking_number'
+        ) THEN
+            ALTER TABLE orders ADD COLUMN tracking_number VARCHAR(100);
+        END IF;
+    END $$;
+    """,
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='orders' AND column_name='discount_amount'
+        ) THEN
+            ALTER TABLE orders ADD COLUMN discount_amount NUMERIC(10,2) DEFAULT 0;
+        END IF;
+    END $$;
+    """,
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='orders' AND column_name='coupon_id'
+        ) THEN
+            ALTER TABLE orders ADD COLUMN coupon_id INTEGER REFERENCES coupons(id);
+        END IF;
+    END $$;
     """,
 ]
 

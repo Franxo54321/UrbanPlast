@@ -203,6 +203,7 @@ def checkout():
                 price=item.product.price,
                 quantity=item.quantity
             ))
+            item.product.stock = max(0, item.product.stock - item.quantity)
 
         CartItem.query.filter_by(user_id=current_user.id).delete()
         db.session.commit()
