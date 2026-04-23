@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Admin - Cupones{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-2">{% set active_page = 'coupons' %}{% include 'admin/_sidebar.html' %}</div>
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">Cupones de descuento</h2>
+                <a href="{{ url_for('admin.coupon_create') }}" class="btn btn-up-green">
+                    <i class="bi bi-plus-circle"></i> Nuevo cupón
+                </a>
+            </div>
+
+            {% if coupons %}
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Tipo</th>
+                                <th>Descuento</th>
+                                <th>Mín. pedido</th>
+                                <th>Usos restantes</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in coupons %}
+                            <tr>
+                                <td><code class="fw-bold">{{ c.code }}</code></td>
+                                <td>{{ 'Porcentaje' if c.discount_type == 'percent' else 'Monto fijo' }}</td>
+                                <td>{{ c.discount_value }}{{ '%' if c.discount_type == 'percent' else ' ARS' }}</td>
+                                <td>${{ "%.2f"|format(c.min_order) }}</td>
+                                <td>{{ c.uses_left if c.uses_left is not none else '∞' }}</td>
+                                <td>
+                                    {% if c.active %}<span class="badge bg-success">Activo</span>
+                                    {% else %}<span class="badge bg-secondary">Inactivo</span>{% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin.coupon_edit', coupon_id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                                    <form method="POST" action="{{ url_for('admin.coupon_delete', coupon_id=c.id) }}" class="d-inline" onsubmit="return confirm('¿Eliminar este cupón?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-ticket-perforated fs-1 text-muted"></i>
+                <h5 class="mt-3 text-muted">No hay cupones creados</h5>
+                <a href="{{ url_for('admin.coupon_create') }}" class="btn btn-up-green mt-2">Crear primer cupón</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

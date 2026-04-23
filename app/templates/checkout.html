@@ -10,7 +10,6 @@
     .step-circle.pending { background-color: #dee2e6; color: #6c757d; }
     .step-line { width: 40px; height: 2px; background-color: #dee2e6; }
     .step-line.done { background-color: var(--up-green); }
-    .step-label { font-size: .8rem; }
     .checkout-step { display: none; }
     .checkout-step.active { display: block; }
     .payment-card { cursor: pointer; transition: border-color .2s, box-shadow .2s; }
@@ -23,28 +22,19 @@
 <div class="container py-4">
     <h2 class="mb-3"><i class="bi bi-credit-card-2-front"></i> Finalizar Compra</h2>
 
-    <!-- Step Indicator -->
     <div class="step-indicator" id="stepIndicator">
-        <div class="text-center">
-            <div class="step-circle active" id="stepCircle1">1</div>
-            <div class="step-label">Envío</div>
-        </div>
+        <div class="text-center"><div class="step-circle active" id="stepCircle1">1</div><div class="step-label">Envío</div></div>
         <div class="step-line" id="stepLine1"></div>
-        <div class="text-center">
-            <div class="step-circle pending" id="stepCircle2">2</div>
-            <div class="step-label">Resumen</div>
-        </div>
+        <div class="text-center"><div class="step-circle pending" id="stepCircle2">2</div><div class="step-label">Resumen</div></div>
         <div class="step-line" id="stepLine2"></div>
-        <div class="text-center">
-            <div class="step-circle pending" id="stepCircle3">3</div>
-            <div class="step-label">Pago</div>
-        </div>
+        <div class="text-center"><div class="step-circle pending" id="stepCircle3">3</div><div class="step-label">Pago</div></div>
     </div>
 
     <form method="POST" id="checkoutForm" novalidate>
         {{ form.hidden_tag() }}
+        <input type="hidden" name="coupon_id" id="appliedCouponId" value="">
 
-        <!-- PASO 1: Dirección de Envío -->
+        <!-- PASO 1: Dirección -->
         <div class="checkout-step active" id="step1">
             <div class="row justify-content-center">
                 <div class="col-lg-7">
@@ -61,30 +51,29 @@
                                 </div>
                                 {% endfor %}
                             </div>
-
-                            <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill" style="color: var(--up-wood);"></i> Dirección de Envío</h5>
+                            <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill" style="color:var(--up-wood);"></i> Dirección de Envío</h5>
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Dirección</label>
                                 {{ form.address(class="form-control" + (" is-invalid" if form.address.errors else ""), placeholder="Ej: Av. San Martín 1234") }}
-                                {% for error in form.address.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                {% for e in form.address.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">Ciudad</label>
                                     {{ form.city(class="form-control" + (" is-invalid" if form.city.errors else ""), placeholder="Buenos Aires") }}
-                                    {% for error in form.city.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                    {% for e in form.city.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">Provincia</label>
                                     {{ form.province(class="form-control" + (" is-invalid" if form.province.errors else ""), placeholder="CABA") }}
-                                    {% for error in form.province.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                    {% for e in form.province.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">Código Postal</label>
                                     {{ form.postal_code(class="form-control" + (" is-invalid" if form.postal_code.errors else ""), placeholder="1000") }}
-                                    {% for error in form.postal_code.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                    {% for e in form.postal_code.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">País</label>
@@ -94,9 +83,8 @@
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Teléfono</label>
                                 {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), placeholder="+54 11 ...") }}
-                                {% for error in form.phone.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                                {% for e in form.phone.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                             </div>
-
                             <button type="button" class="btn btn-up-green btn-lg w-100" onclick="goToStep(2)">
                                 Continuar al resumen <i class="bi bi-arrow-right"></i>
                             </button>
@@ -106,7 +94,7 @@
             </div>
         </div>
 
-        <!-- PASO 2: Resumen -->
+        <!-- PASO 2: Resumen + cupón -->
         <div class="checkout-step" id="step2">
             <div class="row justify-content-center">
                 <div class="col-lg-7">
@@ -117,7 +105,7 @@
                                 <tbody>
                                     {% for item in items %}
                                     <tr>
-                                        <td>{{ item.product.name }}</td>
+                                        <td>{{ item.product.name }} <small class="text-muted">x{{ item.quantity }}</small></td>
                                         <td class="text-end fw-bold">${{ "%.2f"|format(item.subtotal) }}</td>
                                     </tr>
                                     {% endfor %}
@@ -126,7 +114,11 @@
                             <div class="border-top pt-3 mt-2">
                                 <div class="d-flex justify-content-between mb-1">
                                     <span>Subtotal:</span>
-                                    <span class="fw-bold">${{ "%.2f"|format(total) }}</span>
+                                    <span class="fw-bold" id="subtotalDisplay">${{ "%.2f"|format(subtotal) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1 text-success" id="discountRow" style="display:none !important;">
+                                    <span id="discountLabel">Descuento:</span>
+                                    <span id="discountAmount">-$0.00</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-1">
                                     <span>Envío:</span>
@@ -135,16 +127,24 @@
                                 <hr>
                                 <div class="d-flex justify-content-between fs-5">
                                     <span class="fw-bold">Total:</span>
-                                    <span class="fw-bold text-up-green">${{ "%.2f"|format(total) }}</span>
+                                    <span class="fw-bold text-up-green" id="totalDisplay">${{ "%.2f"|format(subtotal) }}</span>
                                 </div>
+                            </div>
+
+                            <!-- Cupón -->
+                            <div class="mt-3">
+                                <label class="form-label fw-semibold"><i class="bi bi-ticket-perforated"></i> Cupón de descuento</label>
+                                <div class="input-group">
+                                    <input type="text" id="couponCode" class="form-control" placeholder="Ingresá tu cupón">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="applyCoupon()">Aplicar</button>
+                                </div>
+                                <div id="couponMsg" class="mt-1 small"></div>
                             </div>
                         </div>
                     </div>
                     <p class="text-muted mb-3"><i class="bi bi-geo-alt"></i> <strong>Envío a:</strong> <span id="summaryAddress"></span></p>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)">
-                            <i class="bi bi-arrow-left"></i> Volver
-                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)"><i class="bi bi-arrow-left"></i> Volver</button>
                         <button type="button" class="btn btn-up-green btn-lg flex-grow-1" onclick="goToStep(3)">
                             Elegir método de pago <i class="bi bi-arrow-right"></i>
                         </button>
@@ -179,20 +179,16 @@
                                 </div>
                                 {% endfor %}
                             </div>
-
                             <div class="mb-3">
                                 <label class="form-label">Notas (opcional)</label>
                                 {{ form.notes(class="form-control", rows=2, placeholder="Alguna indicación especial...") }}
                             </div>
                         </div>
                     </div>
-
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">
-                            <i class="bi bi-arrow-left"></i> Volver
-                        </button>
-                        <button type="submit" class="btn btn-up-green btn-lg flex-grow-1">
-                            <i class="bi bi-check-circle"></i> Confirmar pedido — ${{ "%.2f"|format(total) }}
+                        <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)"><i class="bi bi-arrow-left"></i> Volver</button>
+                        <button type="submit" class="btn btn-up-green btn-lg flex-grow-1" id="confirmBtn">
+                            <i class="bi bi-check-circle"></i> Confirmar pedido — <span id="confirmTotal">${{ "%.2f"|format(subtotal) }}</span>
                         </button>
                     </div>
                 </div>
@@ -205,24 +201,20 @@
 {% block extra_js %}
 <script>
 let currentStep = 1;
+let appliedDiscount = 0;
+const subtotal = {{ subtotal | float }};
 
 function goToStep(step) {
-    // Validar paso 1 antes de avanzar
     if (step > 1 && currentStep === 1) {
-        const address = document.querySelector('[name="address"]');
-        const city = document.querySelector('[name="city"]');
-        const province = document.querySelector('[name="province"]');
-        const postal = document.querySelector('[name="postal_code"]');
-        const phone = document.querySelector('[name="phone"]');
+        const fields = ['address', 'city', 'province', 'postal_code', 'phone'];
         let valid = true;
-        [address, city, province, postal, phone].forEach(f => {
+        fields.forEach(name => {
+            const f = document.querySelector(`[name="${name}"]`);
             if (!f.value.trim()) { f.classList.add('is-invalid'); valid = false; }
-            else { f.classList.remove('is-invalid'); }
+            else f.classList.remove('is-invalid');
         });
         if (!valid) return;
     }
-
-    // Actualizar resumen de dirección
     if (step === 2) {
         const addr = document.querySelector('[name="address"]').value;
         const city = document.querySelector('[name="city"]').value;
@@ -231,12 +223,9 @@ function goToStep(step) {
         const country = document.querySelector('[name="country"]').value || 'Argentina';
         document.getElementById('summaryAddress').textContent = [addr, city, prov, cp, country].filter(Boolean).join(', ');
     }
-
     currentStep = step;
     document.querySelectorAll('.checkout-step').forEach(el => el.classList.remove('active'));
     document.getElementById('step' + step).classList.add('active');
-
-    // Actualizar indicadores
     for (let i = 1; i <= 3; i++) {
         const circle = document.getElementById('stepCircle' + i);
         circle.classList.remove('active', 'done', 'pending');
@@ -246,7 +235,6 @@ function goToStep(step) {
     }
     document.getElementById('stepLine1').classList.toggle('done', step >= 2);
     document.getElementById('stepLine2').classList.toggle('done', step >= 3);
-
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -260,6 +248,37 @@ function selectDelivery(card, value) {
     document.querySelectorAll('#step1 .payment-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     card.querySelector('input[type=radio]').checked = true;
+}
+
+function applyCoupon() {
+    const code = document.getElementById('couponCode').value.trim();
+    const msgEl = document.getElementById('couponMsg');
+    if (!code) { msgEl.innerHTML = '<span class="text-danger">Ingresá un código.</span>'; return; }
+
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    fetch('/cart/aplicar-cupon', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({ code, subtotal })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            appliedDiscount = data.discount;
+            document.getElementById('appliedCouponId').value = data.coupon_id;
+            const discountRow = document.getElementById('discountRow');
+            discountRow.style.display = 'flex !important';
+            discountRow.removeAttribute('style');
+            document.getElementById('discountLabel').textContent = `Descuento (${code.toUpperCase()}):`;
+            document.getElementById('discountAmount').textContent = `-$${data.discount.toFixed(2)}`;
+            document.getElementById('totalDisplay').textContent = `$${data.new_total.toFixed(2)}`;
+            document.getElementById('confirmTotal').textContent = `$${data.new_total.toFixed(2)}`;
+            msgEl.innerHTML = `<span class="text-success"><i class="bi bi-check-circle"></i> ${data.message}</span>`;
+        } else {
+            msgEl.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle"></i> ${data.error}</span>`;
+        }
+    })
+    .catch(() => { msgEl.innerHTML = '<span class="text-danger">Error al aplicar el cupón.</span>'; });
 }
 </script>
 {% endblock %}

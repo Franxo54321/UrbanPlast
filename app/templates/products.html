@@ -1,56 +1,89 @@
 {% extends "base.html" %}
 {% block title %}Productos{% endblock %}
+{% block meta_description %}Explorá nuestra colección de muebles de exterior. Filtrá por categoría, material y precio.{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <div class="row">
         <!-- Sidebar filtros -->
         <div class="col-lg-3 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-up-green text-white">
-                    <i class="bi bi-funnel"></i> Filtros
+            <form method="GET" action="{{ url_for('main.products') }}" id="filterForm">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-up-green text-white">
+                        <i class="bi bi-search"></i> Buscar
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <input type="text" name="q" class="form-control" placeholder="Nombre o descripción..." value="{{ q or '' }}">
+                            <button class="btn btn-up-green" type="submit"><i class="bi bi-search"></i></button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <h6 class="fw-bold">Categorías</h6>
-                    <ul class="list-unstyled">
-                        <li class="mb-1">
-                            <a href="{{ url_for('main.products') }}" class="text-decoration-none {% if not current_category %}fw-bold text-up-green{% endif %}">
-                                Todas
-                            </a>
-                        </li>
-                        {% for cat in categories %}
-                        <li class="mb-1">
-                            <a href="{{ url_for('main.products', categoria=cat.slug) }}" class="text-decoration-none {% if current_category == cat.slug %}fw-bold text-up-green{% endif %}">
-                                {{ cat.name }}
-                            </a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <hr>
-                    <h6 class="fw-bold">Material</h6>
-                    <ul class="list-unstyled">
-                        <li class="mb-1">
-                            <a href="{{ url_for('main.products') }}" class="text-decoration-none {% if not current_material %}fw-bold text-up-green{% endif %}">
-                                Todos
-                            </a>
-                        </li>
-                        {% for mat in materials %}
-                        <li class="mb-1">
-                            <a href="{{ url_for('main.products', material=mat.id) }}" class="text-decoration-none {% if current_material == mat.id %}fw-bold text-up-green{% endif %}">
-                                {{ mat.name }}
-                            </a>
-                        </li>
-                        {% endfor %}
-                    </ul>
+
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-up-green text-white">
+                        <i class="bi bi-funnel"></i> Filtros
+                    </div>
+                    <div class="card-body">
+                        <h6 class="fw-bold">Categorías</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-1">
+                                <a href="{{ url_for('main.products', q=q, sort=sort) }}" class="text-decoration-none {% if not current_category %}fw-bold text-up-green{% endif %}">
+                                    Todas
+                                </a>
+                            </li>
+                            {% for cat in categories %}
+                            <li class="mb-1">
+                                <a href="{{ url_for('main.products', categoria=cat.slug, q=q, sort=sort) }}" class="text-decoration-none {% if current_category == cat.slug %}fw-bold text-up-green{% endif %}">
+                                    {{ cat.name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <hr>
+                        <h6 class="fw-bold">Material</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-1">
+                                <a href="{{ url_for('main.products', categoria=current_category, q=q, sort=sort) }}" class="text-decoration-none {% if not current_material %}fw-bold text-up-green{% endif %}">
+                                    Todos
+                                </a>
+                            </li>
+                            {% for mat in materials %}
+                            <li class="mb-1">
+                                <a href="{{ url_for('main.products', material=mat.id, categoria=current_category, q=q, sort=sort) }}" class="text-decoration-none {% if current_material == mat.id %}fw-bold text-up-green{% endif %}">
+                                    {{ mat.name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <hr>
+                        <h6 class="fw-bold">Precio</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" name="min_price" class="form-control form-control-sm" placeholder="Mín $" value="{{ min_price or '' }}" min="0">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" name="max_price" class="form-control form-control-sm" placeholder="Máx $" value="{{ max_price or '' }}" min="0">
+                            </div>
+                        </div>
+                        <input type="hidden" name="categoria" value="{{ current_category or '' }}">
+                        <input type="hidden" name="material" value="{{ current_material or '' }}">
+                        <button type="submit" class="btn btn-up-green btn-sm w-100 mt-2">Aplicar filtros</button>
+                        {% if q or min_price or max_price or current_category or current_material %}
+                        <a href="{{ url_for('main.products') }}" class="btn btn-outline-secondary btn-sm w-100 mt-1">Limpiar</a>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
 
         <!-- Productos -->
         <div class="col-lg-9">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <h4 class="mb-0">
-                    {% if current_category %}
+                    {% if q %}
+                        Resultados para "<em>{{ q }}</em>"
+                    {% elif current_category %}
                         {{ categories|selectattr('slug', 'equalto', current_category)|map(attribute='name')|first }}
                     {% elif current_material %}
                         Material: {{ materials|selectattr('id', 'equalto', current_material)|map(attribute='name')|first }}
@@ -58,7 +91,14 @@
                         Todos los productos
                     {% endif %}
                 </h4>
-                <span class="text-muted">{{ products.total }} producto{{ 's' if products.total != 1 }}</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small">{{ products.total }} producto{{ 's' if products.total != 1 }}</span>
+                    <select class="form-select form-select-sm" style="width:auto;" onchange="window.location=this.value">
+                        <option value="{{ url_for('main.products', q=q, categoria=current_category, material=current_material, min_price=min_price, max_price=max_price, sort='nuevo') }}" {% if sort == 'nuevo' %}selected{% endif %}>Más nuevos</option>
+                        <option value="{{ url_for('main.products', q=q, categoria=current_category, material=current_material, min_price=min_price, max_price=max_price, sort='precio_asc') }}" {% if sort == 'precio_asc' %}selected{% endif %}>Precio: menor a mayor</option>
+                        <option value="{{ url_for('main.products', q=q, categoria=current_category, material=current_material, min_price=min_price, max_price=max_price, sort='precio_desc') }}" {% if sort == 'precio_desc' %}selected{% endif %}>Precio: mayor a menor</option>
+                    </select>
+                </div>
             </div>
 
             {% if products.items %}
@@ -66,17 +106,33 @@
                 {% for product in products.items %}
                 <div class="col-md-4 col-6">
                     <div class="card h-100 shadow-sm product-card">
-                        <a href="{{ url_for('main.product_detail', slug=product.slug) }}">
-                            <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="object-fit: cover;">
-                        </a>
+                        <div class="position-relative">
+                            <a href="{{ url_for('main.product_detail', slug=product.slug) }}">
+                                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="object-fit: cover;">
+                            </a>
+                            {% if current_user.is_authenticated %}
+                            <button class="btn btn-sm position-absolute top-0 end-0 m-2 wishlist-btn"
+                                    data-product-id="{{ product.id }}"
+                                    data-in-wishlist="{{ 'true' if product.id in wishlist_ids else 'false' }}"
+                                    style="background:rgba(255,255,255,0.85); border:none; border-radius:50%; width:34px; height:34px; padding:0;">
+                                <i class="bi bi-heart{% if product.id in wishlist_ids %}-fill text-danger{% endif %}"></i>
+                            </button>
+                            {% endif %}
+                        </div>
                         <div class="card-body d-flex flex-column">
                             <span class="badge bg-secondary mb-2 align-self-start">{{ product.category.name }}</span>
                             <h6 class="card-title">
                                 <a href="{{ url_for('main.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">{{ product.name }}</a>
                             </h6>
-                            <span class="badge bg-info mb-2 align-self-start">
-                                {{ product.material_name }}
-                            </span>
+                            <span class="badge bg-info mb-2 align-self-start">{{ product.material_name }}</span>
+                            {% if product.avg_rating %}
+                            <div class="mb-1">
+                                {% for i in range(1, 6) %}
+                                <i class="bi bi-star{% if i <= product.avg_rating %}-fill text-warning{% endif %}" style="font-size:.75rem;"></i>
+                                {% endfor %}
+                                <small class="text-muted">({{ product.review_count }})</small>
+                            </div>
+                            {% endif %}
                             {% if product.stock > 0 %}
                                 <small class="text-success"><i class="bi bi-check-circle"></i> En stock</small>
                             {% else %}
@@ -92,19 +148,18 @@
                 {% endfor %}
             </div>
 
-            <!-- Paginación -->
             {% if products.pages > 1 %}
             <nav class="mt-4">
                 <ul class="pagination justify-content-center">
                     {% if products.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.products', page=products.prev_num, categoria=current_category, material=current_material) }}">← Anterior</a>
+                        <a class="page-link" href="{{ url_for('main.products', page=products.prev_num, categoria=current_category, material=current_material, q=q, sort=sort, min_price=min_price, max_price=max_price) }}">← Anterior</a>
                     </li>
                     {% endif %}
                     {% for p in products.iter_pages() %}
                         {% if p %}
                         <li class="page-item {% if p == products.page %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('main.products', page=p, categoria=current_category, material=current_material) }}">{{ p }}</a>
+                            <a class="page-link" href="{{ url_for('main.products', page=p, categoria=current_category, material=current_material, q=q, sort=sort, min_price=min_price, max_price=max_price) }}">{{ p }}</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -112,7 +167,7 @@
                     {% endfor %}
                     {% if products.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.products', page=products.next_num, categoria=current_category, material=current_material) }}">Siguiente →</a>
+                        <a class="page-link" href="{{ url_for('main.products', page=products.next_num, categoria=current_category, material=current_material, q=q, sort=sort, min_price=min_price, max_price=max_price) }}">Siguiente →</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -129,4 +184,31 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.wishlist-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const productId = this.dataset.productId;
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        fetch(`/favoritos/toggle/${productId}`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrf, 'Content-Type': 'application/json'}
+        })
+        .then(r => r.json())
+        .then(data => {
+            const icon = this.querySelector('i');
+            if (data.in_wishlist) {
+                icon.className = 'bi bi-heart-fill text-danger';
+                this.dataset.inWishlist = 'true';
+            } else {
+                icon.className = 'bi bi-heart';
+                this.dataset.inWishlist = 'false';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

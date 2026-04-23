@@ -1,10 +1,11 @@
 import hmac
 import hashlib
+from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app import db
-from app.models import Product, CartItem, Order, OrderItem
+from app.models import Product, CartItem, Order, OrderItem, Coupon, OrderStatusHistory
 from app.auth.forms import CheckoutForm
 
 cart_bp = Blueprint('cart', __name__, template_folder='templates')
@@ -51,7 +52,8 @@ def add_to_cart():
         db.session.add(item)
 
     db.session.commit()
-    return jsonify({'success': True, 'cart_count': _cart_count(current_user.id), 'message': 'Producto agregado al carrito'})
+    return jsonify({'success': True, 'cart_count': _cart_count(current_user.id),
+                    'message': 'Producto agregado al carrito'})
 
 
 @cart_bp.route('/actualizar', methods=['POST'])
@@ -112,6 +114,39 @@ def cart_count():
     return jsonify({'count': _cart_count(current_user.id)})
 
 
+@cart_bp.route('/aplicar-cupon', methods=['POST'])
+@login_required
+def apply_coupon():
+    data = request.get_json() or {}
+    code = data.get('code', '').strip().upper()
+    subtotal = float(data.get('subtotal', 0))
+
+    if not code:
+        return jsonify({'error': 'Ingresá un código de cupón'}), 400
+
+    coupon = Coupon.query.filter_by(code=code, active=True).first()
+    if not coupon:
+        return jsonify({'error': 'Cupón inválido o inactivo'}), 400
+
+    if coupon.uses_left is not None and coupon.uses_left <= 0:
+        return jsonify({'error': 'El cupón ya no tiene usos disponibles'}), 400
+
+    if subtotal < float(coupon.min_order):
+        return jsonify({'error': f'El pedido mínimo para este cupón es ${coupon.min_order:.2f}'}), 400
+
+    discount = coupon.compute_discount(subtotal)
+    new_total = round(subtotal - discount, 2)
+    label = f'{coupon.discount_value:.0f}%' if coupon.discount_type == 'percent' else f'${coupon.discount_value:.2f}'
+
+    return jsonify({
+        'success': True,
+        'coupon_id': coupon.id,
+        'discount': discount,
+        'new_total': new_total,
+        'message': f'Cupón aplicado: -{label}'
+    })
+
+
 @cart_bp.route('/checkout', methods=['GET', 'POST'])
 @login_required
 def checkout():
@@ -120,13 +155,28 @@ def checkout():
         flash('Tu carrito está vacío.', 'warning')
         return redirect(url_for('main.products'))
 
-    total = sum(item.subtotal for item in items)
+    subtotal = sum(item.subtotal for item in items)
     form = CheckoutForm()
 
     if form.validate_on_submit():
+        coupon_id = request.form.get('coupon_id', type=int)
+        discount_amount = 0
+        coupon = None
+
+        if coupon_id:
+            coupon = Coupon.query.filter_by(id=coupon_id, active=True).first()
+            if coupon and (coupon.uses_left is None or coupon.uses_left > 0):
+                discount_amount = coupon.compute_discount(float(subtotal))
+                if coupon.uses_left is not None:
+                    coupon.uses_left -= 1
+
+        total = float(subtotal) - discount_amount
+
         order = Order(
             user_id=current_user.id,
             total=total,
+            discount_amount=discount_amount,
+            coupon_id=coupon_id if coupon else None,
             payment_method=form.payment_method.data,
             delivery_type=form.delivery_type.data,
             address=form.address.data,
@@ -141,20 +191,24 @@ def checkout():
         db.session.add(order)
         db.session.flush()
 
+        db.session.add(OrderStatusHistory(
+            order_id=order.id, status='pendiente', note='Pedido creado'
+        ))
+
         for item in items:
-            order_item = OrderItem(
+            db.session.add(OrderItem(
                 order_id=order.id,
                 product_id=item.product_id,
                 product_name=item.product.name,
                 price=item.product.price,
                 quantity=item.quantity
-            )
-            db.session.add(order_item)
+            ))
 
         CartItem.query.filter_by(user_id=current_user.id).delete()
         db.session.commit()
 
-        # Si eligió MercadoPago, crear preferencia y redirigir
+        _send_order_emails(order)
+
         if form.payment_method.data == 'mercadopago':
             mp_url = _create_mp_preference(order)
             if mp_url:
@@ -163,11 +217,45 @@ def checkout():
         flash('¡Pedido realizado con éxito!', 'success')
         return redirect(url_for('cart.order_detail', order_id=order.id))
 
-    return render_template('checkout.html', form=form, items=items, total=total)
+    return render_template('checkout.html', form=form, items=items, subtotal=subtotal)
+
+
+def _send_order_emails(order):
+    try:
+        from flask_mail import Message
+        from app import mail
+        if not current_app.config.get('MAIL_USERNAME'):
+            return
+
+        now = datetime.utcnow()
+
+        # Email al cliente
+        client_html = render_template('emails/order_confirmation.html', order=order, now=now)
+        msg_client = Message(
+            subject=f'UrbanPlast — Confirmación de pedido #{order.id}',
+            recipients=[order.user.email],
+            html=client_html
+        )
+        mail.send(msg_client)
+
+        # Email al admin
+        admin_email = current_app.config.get('ADMIN_EMAIL', '')
+        if admin_email:
+            base = current_app.config.get('BASE_URL', '').rstrip('/')
+            admin_url = f"{base}/admin/pedidos/{order.id}"
+            admin_html = render_template('emails/new_order_admin.html',
+                                         order=order, admin_url=admin_url, now=now)
+            msg_admin = Message(
+                subject=f'[UrbanPlast] Nuevo pedido #{order.id} — ${order.total:.2f}',
+                recipients=[admin_email],
+                html=admin_html
+            )
+            mail.send(msg_admin)
+    except Exception:
+        pass
 
 
 def _create_mp_preference(order):
-    """Crea una preferencia de pago en MercadoPago y retorna la URL de pago."""
     access_token = current_app.config.get('MP_ACCESS_TOKEN', '')
     if not access_token:
         flash('MercadoPago no está configurado. Contactanos para completar el pago.', 'warning')
@@ -176,25 +264,20 @@ def _create_mp_preference(order):
     import mercadopago
     sdk = mercadopago.SDK(access_token)
 
-    items_mp = []
-    for item in order.items:
-        items_mp.append({
-            "title": item.product_name,
-            "quantity": item.quantity,
-            "unit_price": float(item.price),
-            "currency_id": "ARS",
-        })
+    items_mp = [{
+        "title": item.product_name,
+        "quantity": item.quantity,
+        "unit_price": float(item.price),
+        "currency_id": "ARS",
+    } for item in order.items]
 
     base_url = current_app.config.get('BASE_URL') or request.host_url.rstrip('/')
-    # Railway provee el dominio sin esquema; aseguramos https en producción
     if base_url and not base_url.startswith('http'):
         base_url = 'https://' + base_url
 
     preference_data = {
         "items": items_mp,
-        "payer": {
-            "email": order.user.email,
-        },
+        "payer": {"email": order.user.email},
         "back_urls": {
             "success": f"{base_url}/cart/mp/success?order_id={order.id}",
             "failure": f"{base_url}/cart/mp/failure?order_id={order.id}",
@@ -217,8 +300,6 @@ def _create_mp_preference(order):
 
 
 def _verify_mp_webhook(req):
-    """Verify MercadoPago webhook signature using HMAC-SHA256.
-    Only enforced when MP_WEBHOOK_SECRET is set in config."""
     secret = current_app.config.get('MP_WEBHOOK_SECRET', '')
     if not secret:
         return True
@@ -256,6 +337,8 @@ def mp_success():
         if order:
             order.status = 'pagado'
             order.mp_payment_id = str(payment_id)
+            db.session.add(OrderStatusHistory(order_id=order.id, status='pagado',
+                                              note='Pago aprobado por MercadoPago'))
             db.session.commit()
     flash('¡Pago aprobado! Tu pedido fue confirmado.', 'success')
     return redirect(url_for('cart.order_detail', order_id=order_id))
@@ -284,7 +367,6 @@ def mp_pending():
 
 @cart_bp.route('/mp/webhook', methods=['POST'])
 def mp_webhook():
-    """Webhook de MercadoPago para notificaciones de pago (IPN)."""
     if not _verify_mp_webhook(request):
         return jsonify({'status': 'unauthorized'}), 401
 
@@ -307,12 +389,19 @@ def mp_webhook():
                 order = Order.query.get(int(ext_ref))
                 if order:
                     order.mp_payment_id = str(payment_id)
+                    new_status = None
                     if status == 'approved':
-                        order.status = 'pagado'
+                        new_status = 'pagado'
                     elif status in ('pending', 'in_process'):
-                        order.status = 'pendiente'
+                        new_status = 'pendiente'
                     elif status in ('rejected', 'cancelled'):
-                        order.status = 'cancelado'
+                        new_status = 'cancelado'
+                    if new_status and order.status != new_status:
+                        order.status = new_status
+                        db.session.add(OrderStatusHistory(
+                            order_id=order.id, status=new_status,
+                            note=f'Actualizado por webhook MP (status: {status})'
+                        ))
                     db.session.commit()
 
     return jsonify({'status': 'ok'}), 200
@@ -322,7 +411,8 @@ def mp_webhook():
 @login_required
 def order_detail(order_id):
     order = Order.query.filter_by(id=order_id, user_id=current_user.id).first_or_404()
-    return render_template('order_detail.html', order=order)
+    history = order.status_history.order_by(OrderStatusHistory.changed_at).all()
+    return render_template('order_detail.html', order=order, history=history)
 
 
 @cart_bp.route('/mis-pedidos')

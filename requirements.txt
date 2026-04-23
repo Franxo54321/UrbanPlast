@@ -4,6 +4,7 @@ Flask-Login==0.6.3
 Flask-WTF==1.2.2
 Flask-Migrate==4.1.0
 Flask-Limiter==3.5.0
+Flask-Mail==0.10.0
 WTForms==3.2.1
 psycopg2-binary==2.9.10
 python-dotenv==1.1.0

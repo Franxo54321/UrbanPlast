@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Contacto{% endblock %}
+{% block meta_description %}Contactanos para consultas sobre nuestros muebles de exterior. Respondemos a la brevedad.{% endblock %}
 
 {% block content %}
 <section class="py-5">
@@ -14,31 +15,19 @@
                         <h5 class="fw-bold mb-4">Información de contacto</h5>
                         <div class="d-flex align-items-start mb-3">
                             <i class="bi bi-geo-alt-fill fs-4 me-3" style="color: var(--up-green);"></i>
-                            <div>
-                                <strong>Dirección</strong>
-                                <p class="text-muted mb-0">Av. Corrientes 1234, CABA<br>Buenos Aires, Argentina</p>
-                            </div>
+                            <div><strong>Dirección</strong><p class="text-muted mb-0">Av. Corrientes 1234, CABA<br>Buenos Aires, Argentina</p></div>
                         </div>
                         <div class="d-flex align-items-start mb-3">
                             <i class="bi bi-telephone-fill fs-4 me-3" style="color: var(--up-green);"></i>
-                            <div>
-                                <strong>Teléfono</strong>
-                                <p class="text-muted mb-0">+54 11 1234-5678</p>
-                            </div>
+                            <div><strong>Teléfono</strong><p class="text-muted mb-0">+54 11 1234-5678</p></div>
                         </div>
                         <div class="d-flex align-items-start mb-3">
                             <i class="bi bi-envelope-fill fs-4 me-3" style="color: var(--up-green);"></i>
-                            <div>
-                                <strong>Email</strong>
-                                <p class="text-muted mb-0">info@urbanplast.com</p>
-                            </div>
+                            <div><strong>Email</strong><p class="text-muted mb-0">info@urbanplast.com</p></div>
                         </div>
                         <div class="d-flex align-items-start mb-3">
                             <i class="bi bi-whatsapp fs-4 me-3" style="color: #25d366;"></i>
-                            <div>
-                                <strong>WhatsApp</strong>
-                                <p class="text-muted mb-0">+54 11 1234-5678</p>
-                            </div>
+                            <div><strong>WhatsApp</strong><p class="text-muted mb-0">+54 11 1234-5678</p></div>
                         </div>
                         <hr>
                         <h6 class="fw-bold">Horarios de atención</h6>
@@ -47,32 +36,36 @@
                     </div>
                 </div>
             </div>
+
             <div class="col-lg-7">
                 <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-body p-4">
                         <h5 class="fw-bold mb-4">Envianos un mensaje</h5>
-                        <form>
+                        <form method="POST" novalidate>
+                            {{ form.hidden_tag() }}
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" placeholder="Tu nombre">
+                                    <label class="form-label">{{ form.name.label.text }}</label>
+                                    {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Tu nombre") }}
+                                    {% for e in form.name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" placeholder="tu@email.com">
+                                    <label class="form-label">{{ form.email.label.text }}</label>
+                                    {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="tu@email.com") }}
+                                    {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">Asunto</label>
-                                    <input type="text" class="form-control" placeholder="¿En qué podemos ayudarte?">
+                                    <label class="form-label">{{ form.subject.label.text }}</label>
+                                    {{ form.subject(class="form-control" + (" is-invalid" if form.subject.errors else ""), placeholder="¿En qué podemos ayudarte?") }}
+                                    {% for e in form.subject.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">Mensaje</label>
-                                    <textarea class="form-control" rows="5" placeholder="Escribí tu mensaje..."></textarea>
+                                    <label class="form-label">{{ form.message.label.text }}</label>
+                                    {{ form.message(class="form-control" + (" is-invalid" if form.message.errors else ""), rows=5, placeholder="Escribí tu mensaje...") }}
+                                    {% for e in form.message.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                 </div>
                                 <div class="col-12">
-                                    <button type="submit" class="btn btn-up-green btn-lg w-100">
-                                        <i class="bi bi-send"></i> Enviar mensaje
-                                    </button>
+                                    {{ form.submit(class="btn btn-up-green btn-lg w-100") }}
                                 </div>
                             </div>
                         </form>

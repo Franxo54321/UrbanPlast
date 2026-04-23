@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+.container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; }
+.header { background: #2d6a4f; color: #fff; padding: 24px; text-align: center; }
+.header h1 { margin: 0; font-size: 24px; }
+.body { padding: 24px; }
+.status-badge { display: inline-block; background: #d8f3dc; color: #1b4332; padding: 6px 16px; border-radius: 20px; font-weight: bold; margin-bottom: 16px; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th { background: #f1f1f1; padding: 10px; text-align: left; font-size: 13px; }
+td { padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
+.total-row td { font-weight: bold; font-size: 16px; color: #2d6a4f; border-bottom: none; }
+.footer { background: #f8f8f8; padding: 16px 24px; text-align: center; font-size: 12px; color: #888; }
+</style></head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🌿 UrbanPlast</h1>
+        <p style="margin:4px 0 0;">Confirmación de pedido</p>
+    </div>
+    <div class="body">
+        <p>Hola <strong>{{ order.user.username }}</strong>,</p>
+        <p>¡Tu pedido fue registrado con éxito! Acá tenés el resumen:</p>
+
+        <span class="status-badge">Pedido #{{ order.id }}</span>
+        <p style="color:#555; font-size:13px;">{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+
+        <table>
+            <thead><tr><th>Producto</th><th>Cant.</th><th style="text-align:right;">Subtotal</th></tr></thead>
+            <tbody>
+            {% for item in order.items %}
+            <tr>
+                <td>{{ item.product_name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td style="text-align:right;">${{ "%.2f"|format(item.subtotal) }}</td>
+            </tr>
+            {% endfor %}
+            {% if order.discount_amount and order.discount_amount > 0 %}
+            <tr><td colspan="2" style="color:#2d6a4f;">Descuento ({{ order.coupon.code if order.coupon else 'cupón' }})</td><td style="text-align:right;color:#2d6a4f;">-${{ "%.2f"|format(order.discount_amount) }}</td></tr>
+            {% endif %}
+            </tbody>
+            <tfoot><tr class="total-row"><td colspan="2">Total</td><td style="text-align:right;">${{ "%.2f"|format(order.total) }}</td></tr></tfoot>
+        </table>
+
+        <p><strong>Dirección de envío:</strong> {{ order.full_address }}</p>
+        <p><strong>Método de pago:</strong>
+            {% if order.payment_method == 'mercadopago' %}MercadoPago
+            {% elif order.payment_method == 'tarjeta' %}Tarjeta de crédito/débito
+            {% else %}Transferencia bancaria{% endif %}
+        </p>
+
+        <p style="color:#555;">Podés ver el estado de tu pedido en cualquier momento desde <em>Mis pedidos</em> en nuestra web.</p>
+    </div>
+    <div class="footer">
+        &copy; {{ now.year }} UrbanPlast — Muebles de Exterior | Buenos Aires, Argentina
+    </div>
+</div>
+</body>
+</html>

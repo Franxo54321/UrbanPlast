@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+.container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; }
+.header { background: #2d6a4f; color: #fff; padding: 20px 24px; }
+.body { padding: 24px; }
+.field { margin-bottom: 12px; }
+.label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.value { font-size: 15px; color: #222; margin-top: 2px; }
+.message-box { background: #f8f8f8; border-left: 4px solid #2d6a4f; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; white-space: pre-wrap; }
+</style></head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0;">✉️ Nuevo mensaje de contacto</h2>
+    </div>
+    <div class="body">
+        <div class="field"><div class="label">Nombre</div><div class="value">{{ name }}</div></div>
+        <div class="field"><div class="label">Email</div><div class="value">{{ email }}</div></div>
+        <div class="field"><div class="label">Asunto</div><div class="value">{{ subject }}</div></div>
+        <div class="label">Mensaje</div>
+        <div class="message-box">{{ message }}</div>
+        <p style="font-size:12px;color:#aaa;">Recibido el {{ now.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+</div>
+</body>
+</html>

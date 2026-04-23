@@ -4,20 +4,17 @@
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row">
-        <!-- Sidebar Admin -->
         <div class="col-md-2">{% set active_page = 'dashboard' %}{% include 'admin/_sidebar.html' %}</div>
 
-        <!-- Content -->
         <div class="col-md-10">
             <h2 class="mb-4">Dashboard</h2>
+
+            <!-- Métricas principales -->
             <div class="row g-4 mb-4">
                 <div class="col-md-3">
                     <div class="card bg-up-green text-white shadow">
                         <div class="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-0">Productos</h6>
-                                <h2 class="mb-0">{{ total_products }}</h2>
-                            </div>
+                            <div><h6 class="card-title mb-0">Productos</h6><h2 class="mb-0">{{ total_products }}</h2></div>
                             <i class="bi bi-box-seam fs-1 opacity-50"></i>
                         </div>
                     </div>
@@ -25,10 +22,7 @@
                 <div class="col-md-3">
                     <div class="card bg-success text-white shadow">
                         <div class="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-0">Usuarios</h6>
-                                <h2 class="mb-0">{{ total_users }}</h2>
-                            </div>
+                            <div><h6 class="card-title mb-0">Usuarios</h6><h2 class="mb-0">{{ total_users }}</h2></div>
                             <i class="bi bi-people fs-1 opacity-50"></i>
                         </div>
                     </div>
@@ -36,22 +30,36 @@
                 <div class="col-md-3">
                     <div class="card bg-info text-white shadow">
                         <div class="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-0">Categorías</h6>
-                                <h2 class="mb-0">{{ total_categories }}</h2>
-                            </div>
-                            <i class="bi bi-tags fs-1 opacity-50"></i>
+                            <div><h6 class="card-title mb-0">Pedidos</h6><h2 class="mb-0">{{ total_orders }}</h2></div>
+                            <i class="bi bi-bag-check fs-1 opacity-50"></i>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card text-white shadow" style="background-color: var(--up-wood);">
                         <div class="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-0">Pedidos</h6>
-                                <h2 class="mb-0">{{ total_orders }}</h2>
-                            </div>
-                            <i class="bi bi-bag-check fs-1 opacity-50"></i>
+                            <div><h6 class="card-title mb-0">Ingresos este mes</h6><h2 class="mb-0">${{ "%.0f"|format(monthly_revenue) }}</h2></div>
+                            <i class="bi bi-cash-stack fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de ventas + estados -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header"><h5 class="mb-0">Ventas últimos 6 meses</h5></div>
+                        <div class="card-body">
+                            <canvas id="salesChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header"><h5 class="mb-0">Pedidos por estado</h5></div>
+                        <div class="card-body d-flex align-items-center justify-content-center">
+                            <canvas id="statusChart" height="200"></canvas>
                         </div>
                     </div>
                 </div>
@@ -59,35 +67,21 @@
 
             <div class="row g-4">
                 <!-- Últimos productos -->
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="card shadow-sm">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Últimos productos</h5>
-                            <a href="{{ url_for('admin.product_create') }}" class="btn btn-up-green btn-sm">
-                                <i class="bi bi-plus"></i> Nuevo
-                            </a>
+                            <a href="{{ url_for('admin.product_create') }}" class="btn btn-up-green btn-sm"><i class="bi bi-plus"></i> Nuevo</a>
                         </div>
                         <div class="card-body p-0">
                             <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Precio</th>
-                                        <th>Stock</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
+                                <thead class="table-light"><tr><th>Nombre</th><th>Stock</th><th></th></tr></thead>
                                 <tbody>
                                     {% for product in recent_products %}
                                     <tr>
                                         <td>{{ product.name }}</td>
-                                        <td>${{ "%.2f"|format(product.price) }}</td>
                                         <td>{{ product.stock }}</td>
-                                        <td>
-                                            <a href="{{ url_for('admin.product_edit', product_id=product.id) }}" class="btn btn-sm btn-outline-secondary">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                        </td>
+                                        <td><a href="{{ url_for('admin.product_edit', product_id=product.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a></td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -96,45 +90,49 @@
                     </div>
                 </div>
 
+                <!-- Más vendidos -->
+                <div class="col-lg-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header"><h5 class="mb-0">Más vendidos</h5></div>
+                        <div class="card-body p-0">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light"><tr><th>Producto</th><th class="text-end">Unidades</th></tr></thead>
+                                <tbody>
+                                    {% for name, qty in top_products %}
+                                    <tr>
+                                        <td>{{ name }}</td>
+                                        <td class="text-end fw-bold">{{ qty }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr><td colspan="2" class="text-muted text-center py-3">Sin ventas aún</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Últimos pedidos -->
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="card shadow-sm">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Últimos pedidos</h5>
-                            <a href="{{ url_for('admin.orders') }}" class="btn btn-up-green btn-sm">
-                                Ver todos
-                            </a>
+                            <a href="{{ url_for('admin.orders') }}" class="btn btn-up-green btn-sm">Ver todos</a>
                         </div>
                         <div class="card-body p-0">
                             <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Usuario</th>
-                                        <th>Total</th>
-                                        <th>Estado</th>
-                                    </tr>
-                                </thead>
+                                <thead class="table-light"><tr><th>#</th><th>Total</th><th>Estado</th></tr></thead>
                                 <tbody>
                                     {% for order in recent_orders %}
                                     <tr>
                                         <td><a href="{{ url_for('admin.order_detail', order_id=order.id) }}">#{{ order.id }}</a></td>
-                                        <td>{{ order.user.username }}</td>
                                         <td>${{ "%.2f"|format(order.total) }}</td>
                                         <td>
-                                            {% if order.status == 'pendiente' %}
-                                            <span class="badge bg-warning text-dark">Pendiente</span>
-                                            {% elif order.status == 'pagado' %}
-                                            <span class="badge bg-success">Pagado</span>
-                                            {% elif order.status == 'enviado' %}
-                                            <span class="badge bg-info">Enviado</span>
-                                            {% elif order.status == 'completado' %}
-                                            <span class="badge bg-up-green">Completado</span>
-                                            {% elif order.status == 'cancelado' %}
-                                            <span class="badge bg-danger">Cancelado</span>
-                                            {% else %}
-                                            <span class="badge bg-secondary">{{ order.status|capitalize }}</span>
-                                            {% endif %}
+                                            {% if order.status == 'pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
+                                            {% elif order.status == 'pagado' %}<span class="badge bg-success">Pagado</span>
+                                            {% elif order.status == 'enviado' %}<span class="badge bg-info">Enviado</span>
+                                            {% elif order.status == 'completado' %}<span class="badge bg-up-green">Completado</span>
+                                            {% else %}<span class="badge bg-danger">Cancelado</span>{% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -147,4 +145,50 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const salesData = {{ sales_data | tojson }};
+new Chart(document.getElementById('salesChart'), {
+    type: 'bar',
+    data: {
+        labels: salesData.map(d => d.month),
+        datasets: [{
+            label: 'Ventas ($)',
+            data: salesData.map(d => d.revenue),
+            backgroundColor: 'rgba(45,106,79,0.7)',
+            borderColor: 'rgba(45,106,79,1)',
+            borderWidth: 1,
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+
+const statusCounts = {{ status_counts | tojson }};
+const statusLabels = { pendiente: 'Pendiente', pagado: 'Pagado', enviado: 'Enviado', completado: 'Completado', cancelado: 'Cancelado' };
+const statusColors = ['#ffc107','#198754','#0dcaf0','#2d6a4f','#dc3545'];
+const keys = Object.keys(statusCounts);
+new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: keys.map(k => statusLabels[k] || k),
+        datasets: [{
+            data: keys.map(k => statusCounts[k]),
+            backgroundColor: statusColors.slice(0, keys.length),
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+    }
+});
+</script>
 {% endblock %}

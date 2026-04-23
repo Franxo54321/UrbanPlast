@@ -20,9 +20,7 @@
                         </div>
                         <div class="col-md-2">
                             <h6 class="fw-bold"><i class="bi bi-truck"></i> Entrega</h6>
-                            <p class="text-muted">
-                                {% if order.delivery_type == 'retiro' %}🏪 Retiro{% else %}📦 Envío{% endif %}
-                            </p>
+                            <p class="text-muted">{% if order.delivery_type == 'retiro' %}🏪 Retiro{% else %}📦 Envío{% endif %}</p>
                         </div>
                         <div class="col-md-2">
                             <h6 class="fw-bold"><i class="bi bi-telephone"></i> Teléfono</h6>
@@ -31,25 +29,29 @@
                         <div class="col-md-2">
                             <h6 class="fw-bold"><i class="bi bi-wallet2"></i> Pago</h6>
                             <p class="text-muted">
-                                {% if order.payment_method == 'mercadopago' %} MercadoPago
-                                {% elif order.payment_method == 'tarjeta' %} Tarjeta
-                                {% else %} Transferencia{% endif %}
+                                {% if order.payment_method == 'mercadopago' %}MercadoPago
+                                {% elif order.payment_method == 'tarjeta' %}Tarjeta
+                                {% else %}Transferencia{% endif %}
                             </p>
                         </div>
                     </div>
-                    {% if order.notes %}
-                    <div class="mt-2">
-                        <h6 class="fw-bold"><i class="bi bi-chat-text"></i> Notas</h6>
-                        <p class="text-muted">{{ order.notes }}</p>
+                    {% if order.tracking_number %}
+                    <hr>
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-truck"></i> <strong>N° de seguimiento:</strong>
+                        <span class="font-monospace">{{ order.tracking_number }}</span>
                     </div>
+                    {% endif %}
+                    {% if order.notes %}
+                    <hr>
+                    <h6 class="fw-bold"><i class="bi bi-chat-text"></i> Notas</h6>
+                    <p class="text-muted">{{ order.notes }}</p>
                     {% endif %}
                 </div>
             </div>
 
             <div class="card shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-transparent">
-                    <h5 class="mb-0">Productos</h5>
-                </div>
+                <div class="card-header bg-transparent"><h5 class="mb-0">Productos</h5></div>
                 <div class="card-body p-0">
                     <table class="table mb-0 align-middle">
                         <thead class="table-light">
@@ -71,6 +73,14 @@
                             {% endfor %}
                         </tbody>
                         <tfoot class="table-light">
+                            {% if order.discount_amount and order.discount_amount > 0 %}
+                            <tr>
+                                <td colspan="3" class="text-success">
+                                    Descuento{% if order.coupon %} ({{ order.coupon.code }}){% endif %}
+                                </td>
+                                <td class="text-end text-success">-${{ "%.2f"|format(order.discount_amount) }}</td>
+                            </tr>
+                            {% endif %}
                             <tr>
                                 <td colspan="3" class="fw-bold fs-5">Total</td>
                                 <td class="text-end fw-bold fs-5" style="color: var(--up-green);">${{ "%.2f"|format(order.total) }}</td>
@@ -79,6 +89,34 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Timeline de estados -->
+            {% if history %}
+            <div class="card shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-clock-history"></i> Historial del pedido</h5></div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for h in history %}
+                        <div class="d-flex gap-3 mb-3">
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                     style="width:32px;height:32px;min-width:32px;
+                                     background:{% if h.status == 'completado' %}var(--up-green){% elif h.status == 'cancelado' %}#dc3545{% elif h.status == 'pagado' %}#198754{% elif h.status == 'enviado' %}#0dcaf0{% else %}#ffc107{% endif %};">
+                                    <i class="bi bi-{% if h.status == 'completado' %}check-lg{% elif h.status == 'cancelado' %}x-lg{% elif h.status == 'pagado' %}check{% elif h.status == 'enviado' %}truck{% else %}clock{% endif %} text-white" style="font-size:.8rem;"></i>
+                                </div>
+                                {% if not loop.last %}<div style="width:2px;flex:1;background:#dee2e6;margin:4px 0;"></div>{% endif %}
+                            </div>
+                            <div class="pb-2">
+                                <div class="fw-semibold text-capitalize">{{ h.status }}</div>
+                                {% if h.note %}<div class="text-muted small">{{ h.note }}</div>{% endif %}
+                                <div class="text-muted" style="font-size:.8rem;">{{ h.changed_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="alert alert-success rounded-3">
                 <i class="bi bi-info-circle"></i>
@@ -92,12 +130,8 @@
             </div>
 
             <div class="d-flex gap-2">
-                <a href="{{ url_for('cart.my_orders') }}" class="btn btn-outline-secondary">
-                    <i class="bi bi-list-ul"></i> Mis pedidos
-                </a>
-                <a href="{{ url_for('main.products') }}" class="btn btn-up-green">
-                    <i class="bi bi-arrow-left"></i> Seguir comprando
-                </a>
+                <a href="{{ url_for('cart.my_orders') }}" class="btn btn-outline-secondary"><i class="bi bi-list-ul"></i> Mis pedidos</a>
+                <a href="{{ url_for('main.products') }}" class="btn btn-up-green"><i class="bi bi-arrow-left"></i> Seguir comprando</a>
             </div>
         </div>
     </div>

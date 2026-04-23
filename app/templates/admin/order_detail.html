@@ -4,11 +4,8 @@
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row">
-        <!-- Sidebar Admin -->
         <div class="col-md-2">{% set active_page = 'orders' %}{% include 'admin/_sidebar.html' %}</div>
-        </div>
 
-        <!-- Content -->
         <div class="col-md-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="mb-0">Pedido #{{ order.id }}</h2>
@@ -18,12 +15,9 @@
             </div>
 
             <div class="row g-4">
-                <!-- Info principal -->
                 <div class="col-lg-8">
                     <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información del pedido</h5>
-                        </div>
+                        <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-info-circle"></i> Información del pedido</h5></div>
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-3">
@@ -32,19 +26,11 @@
                                 </div>
                                 <div class="col-md-3">
                                     <strong>Estado:</strong><br>
-                                    {% if order.status == 'pendiente' %}
-                                    <span class="badge bg-warning text-dark">Pendiente</span>
-                                    {% elif order.status == 'pagado' %}
-                                    <span class="badge bg-success">Pagado</span>
-                                    {% elif order.status == 'enviado' %}
-                                    <span class="badge bg-info">Enviado</span>
-                                    {% elif order.status == 'completado' %}
-                                    <span class="badge bg-up-green">Completado</span>
-                                    {% elif order.status == 'cancelado' %}
-                                    <span class="badge bg-danger">Cancelado</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">{{ order.status|capitalize }}</span>
-                                    {% endif %}
+                                    {% if order.status == 'pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% elif order.status == 'pagado' %}<span class="badge bg-success">Pagado</span>
+                                    {% elif order.status == 'enviado' %}<span class="badge bg-info">Enviado</span>
+                                    {% elif order.status == 'completado' %}<span class="badge bg-up-green">Completado</span>
+                                    {% else %}<span class="badge bg-danger">Cancelado</span>{% endif %}
                                 </div>
                                 <div class="col-md-3">
                                     <strong>Método de pago:</strong><br>
@@ -57,7 +43,7 @@
                                 <div class="col-md-3">
                                     <strong>Entrega:</strong><br>
                                     <span class="text-muted">
-                                        {% if order.delivery_type == 'retiro' %}🏪 Retiro en sucursal{% else %}📦 Envío a domicilio{% endif %}
+                                        {% if order.delivery_type == 'retiro' %}🏪 Retiro{% else %}📦 Envío{% endif %}
                                     </span>
                                 </div>
                             </div>
@@ -72,39 +58,33 @@
                                     <span class="text-muted">{{ order.phone }}</span>
                                 </div>
                                 <div class="col-md-3">
-                                    <strong>Importe total:</strong><br>
+                                    <strong>Total:</strong><br>
                                     <span class="fs-5 fw-bold text-up-green">${{ "%.2f"|format(order.total) }}</span>
                                 </div>
                             </div>
+                            {% if order.tracking_number %}
+                            <hr>
+                            <strong><i class="bi bi-truck"></i> N° de seguimiento:</strong>
+                            <span class="font-monospace ms-2">{{ order.tracking_number }}</span>
+                            {% endif %}
                             {% if order.notes %}
                             <hr>
                             <strong><i class="bi bi-chat-text"></i> Notas del cliente:</strong><br>
                             <span class="text-muted">{{ order.notes }}</span>
                             {% endif %}
-                            {% if order.mp_preference_id %}
+                            {% if order.coupon %}
                             <hr>
-                            <small class="text-muted"><strong>MP Preference:</strong> {{ order.mp_preference_id }}</small><br>
-                            {% endif %}
-                            {% if order.mp_payment_id %}
-                            <small class="text-muted"><strong>MP Payment ID:</strong> {{ order.mp_payment_id }}</small>
+                            <small class="text-success"><strong>Cupón aplicado:</strong> {{ order.coupon.code }} — descuento: ${{ "%.2f"|format(order.discount_amount) }}</small>
                             {% endif %}
                         </div>
                     </div>
 
-                    <!-- Productos del pedido -->
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0"><i class="bi bi-box-seam"></i> Productos</h5>
-                        </div>
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-box-seam"></i> Productos</h5></div>
                         <div class="card-body p-0">
                             <table class="table table-hover mb-0 align-middle">
                                 <thead class="table-light">
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th class="text-center">Cantidad</th>
-                                        <th class="text-end">Precio unit.</th>
-                                        <th class="text-end">Subtotal</th>
-                                    </tr>
+                                    <tr><th>Producto</th><th class="text-center">Cantidad</th><th class="text-end">Precio</th><th class="text-end">Subtotal</th></tr>
                                 </thead>
                                 <tbody>
                                     {% for item in order.items %}
@@ -117,22 +97,46 @@
                                     {% endfor %}
                                 </tbody>
                                 <tfoot class="table-light">
-                                    <tr>
-                                        <td colspan="3" class="fw-bold fs-5">Total</td>
-                                        <td class="text-end fw-bold fs-5 text-up-green">${{ "%.2f"|format(order.total) }}</td>
-                                    </tr>
+                                    {% if order.discount_amount and order.discount_amount > 0 %}
+                                    <tr><td colspan="3" class="text-success">Descuento</td><td class="text-end text-success">-${{ "%.2f"|format(order.discount_amount) }}</td></tr>
+                                    {% endif %}
+                                    <tr><td colspan="3" class="fw-bold fs-5">Total</td><td class="text-end fw-bold fs-5 text-up-green">${{ "%.2f"|format(order.total) }}</td></tr>
                                 </tfoot>
                             </table>
                         </div>
                     </div>
+
+                    <!-- Historial de estados -->
+                    {% if history %}
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-clock-history"></i> Historial</h5></div>
+                        <div class="card-body">
+                            {% for h in history %}
+                            <div class="d-flex gap-3 mb-2">
+                                <div class="d-flex flex-column align-items-center">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width:28px;height:28px;min-width:28px;
+                                         background:{% if h.status == 'completado' %}var(--up-green){% elif h.status == 'cancelado' %}#dc3545{% elif h.status == 'pagado' %}#198754{% elif h.status == 'enviado' %}#0dcaf0{% else %}#ffc107{% endif %};">
+                                        <i class="bi bi-circle-fill text-white" style="font-size:.4rem;"></i>
+                                    </div>
+                                    {% if not loop.last %}<div style="width:2px;flex:1;background:#dee2e6;margin:2px 0;min-height:16px;"></div>{% endif %}
+                                </div>
+                                <div class="pb-1">
+                                    <span class="fw-semibold text-capitalize">{{ h.status }}</span>
+                                    {% if h.note %} — <span class="text-muted small">{{ h.note }}</span>{% endif %}
+                                    <div class="text-muted" style="font-size:.75rem;">{{ h.changed_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
 
-                <!-- Panel lateral: cliente + cambiar estado -->
+                <!-- Panel lateral -->
                 <div class="col-lg-4">
                     <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0"><i class="bi bi-person"></i> Cliente</h5>
-                        </div>
+                        <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-person"></i> Cliente</h5></div>
                         <div class="card-body">
                             <p class="mb-1"><strong>{{ order.user.username }}</strong></p>
                             <p class="text-muted mb-1"><i class="bi bi-envelope"></i> {{ order.user.email }}</p>
@@ -141,21 +145,30 @@
                     </div>
 
                     <div class="card shadow-sm">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> Cambiar estado</h5>
-                        </div>
+                        <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> Actualizar pedido</h5></div>
                         <div class="card-body">
                             <form method="POST" action="{{ url_for('admin.order_update_status', order_id=order.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <select name="status" class="form-select mb-3">
-                                    <option value="pendiente" {% if order.status == 'pendiente' %}selected{% endif %}>⏳ Pendiente</option>
-                                    <option value="pagado" {% if order.status == 'pagado' %}selected{% endif %}>✅ Pagado</option>
-                                    <option value="enviado" {% if order.status == 'enviado' %}selected{% endif %}>🚚 Enviado</option>
-                                    <option value="completado" {% if order.status == 'completado' %}selected{% endif %}>🎉 Completado</option>
-                                    <option value="cancelado" {% if order.status == 'cancelado' %}selected{% endif %}>❌ Cancelado</option>
-                                </select>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Estado</label>
+                                    <select name="status" class="form-select">
+                                        <option value="pendiente" {% if order.status == 'pendiente' %}selected{% endif %}>⏳ Pendiente</option>
+                                        <option value="pagado" {% if order.status == 'pagado' %}selected{% endif %}>✅ Pagado</option>
+                                        <option value="enviado" {% if order.status == 'enviado' %}selected{% endif %}>🚚 Enviado</option>
+                                        <option value="completado" {% if order.status == 'completado' %}selected{% endif %}>🎉 Completado</option>
+                                        <option value="cancelado" {% if order.status == 'cancelado' %}selected{% endif %}>❌ Cancelado</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">N° de seguimiento</label>
+                                    <input type="text" name="tracking_number" class="form-control" placeholder="Ej: AR123456789" value="{{ order.tracking_number or '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Nota (opcional)</label>
+                                    <input type="text" name="note" class="form-control" placeholder="Ej: Enviado por Andreani">
+                                </div>
                                 <button type="submit" class="btn btn-up-green w-100">
-                                    <i class="bi bi-check-lg"></i> Actualizar estado
+                                    <i class="bi bi-check-lg"></i> Actualizar
                                 </button>
                             </form>
                         </div>

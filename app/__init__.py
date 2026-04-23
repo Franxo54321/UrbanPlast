@@ -8,12 +8,14 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_mail import Mail
 from config import Config
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
 csrf = CSRFProtect()
+mail = Mail()
 limiter = Limiter(key_func=get_remote_address, default_limits=["500 per day"])
 
 login_manager.login_view = 'auth.login'
@@ -29,6 +31,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    mail.init_app(app)
     limiter.init_app(app)
 
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

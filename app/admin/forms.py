@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, MultipleFileField
 from wtforms import StringField, TextAreaField, DecimalField, IntegerField, SelectField, BooleanField, SubmitField, SelectMultipleField
-from wtforms.validators import DataRequired, Length, NumberRange, Regexp, Optional
+from wtforms.validators import DataRequired, Length, NumberRange, Regexp, Optional, ValidationError
 from wtforms.widgets import CheckboxInput, ListWidget
 
 
@@ -42,4 +42,21 @@ class MaterialForm(FlaskForm):
 class CategoryForm(FlaskForm):
     name = StringField('Nombre', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Descripción', validators=[Optional()])
+    submit = SubmitField('Guardar')
+
+
+class CouponForm(FlaskForm):
+    code = StringField('Código', validators=[DataRequired(), Length(max=50)])
+    discount_type = SelectField('Tipo de descuento', choices=[
+        ('percent', 'Porcentaje (%)'),
+        ('fixed', 'Monto fijo ($)')
+    ], validators=[DataRequired()])
+    discount_value = DecimalField('Valor del descuento', validators=[
+        DataRequired(), NumberRange(min=0.01)
+    ], places=2)
+    min_order = DecimalField('Pedido mínimo ($)', validators=[Optional(), NumberRange(min=0)],
+                             places=2, default=0)
+    uses_left = IntegerField('Usos disponibles (vacío = ilimitado)',
+                             validators=[Optional(), NumberRange(min=1)])
+    active = BooleanField('Activo', default=True)
     submit = SubmitField('Guardar')

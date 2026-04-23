@@ -31,5 +31,14 @@ class Config:
     MP_PUBLIC_KEY = os.environ.get('MP_PUBLIC_KEY', '')
     MP_WEBHOOK_SECRET = os.environ.get('MP_WEBHOOK_SECRET', '')
 
+    # Email (Flask-Mail)
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@urbanplast.com')
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@urbanplast.com')
+
     # URL base del sitio (para callbacks de MercadoPago en producción)
     BASE_URL = os.environ.get('RAILWAY_PUBLIC_DOMAIN', os.environ.get('BASE_URL', 'http://127.0.0.1:5000'))

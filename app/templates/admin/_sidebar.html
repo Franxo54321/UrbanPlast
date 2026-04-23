@@ -15,6 +15,9 @@
         <a href="{{ url_for('admin.product_create') }}" class="list-group-item list-group-item-action {% if active_page == 'product_new' %}active{% endif %}">
             <i class="bi bi-plus-circle"></i> Nuevo Producto
         </a>
+        <a href="{{ url_for('admin.coupons') }}" class="list-group-item list-group-item-action {% if active_page == 'coupons' %}active{% endif %}">
+            <i class="bi bi-ticket-perforated"></i> Cupones
+        </a>
         <a href="{{ url_for('admin.categories_list') }}" class="list-group-item list-group-item-action {% if active_page == 'categories' %}active{% endif %}">
             <i class="bi bi-tags"></i> Categorías
         </a>

@@ -127,6 +127,71 @@ class Product(db.Model):
             return [f'/static/uploads/{self.image}']
         return ['/static/img/no-image.svg']
 
+    @property
+    def avg_rating(self):
+        reviews = self.reviews.all()
+        if not reviews:
+            return None
+        return round(sum(r.rating for r in reviews) / len(reviews), 1)
+
+    @property
+    def review_count(self):
+        return self.reviews.count()
+
+
+class Review(db.Model):
+    __tablename__ = 'reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False, index=True)
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('reviews', lazy='dynamic'))
+    product = db.relationship('Product', backref=db.backref('reviews', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<Review {self.id} rating={self.rating}>'
+
+
+class Wishlist(db.Model):
+    __tablename__ = 'wishlist'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'product_id', name='uq_wishlist_user_product'),)
+
+    user = db.relationship('User', backref=db.backref('wishlist_items', lazy='dynamic'))
+    product = db.relationship('Product', backref='wishlist_items')
+
+
+class Coupon(db.Model):
+    __tablename__ = 'coupons'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    discount_type = db.Column(db.String(10), nullable=False)  # 'percent' or 'fixed'
+    discount_value = db.Column(db.Numeric(10, 2), nullable=False)
+    active = db.Column(db.Boolean, default=True)
+    uses_left = db.Column(db.Integer, nullable=True)  # None = unlimited
+    min_order = db.Column(db.Numeric(10, 2), default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def compute_discount(self, total):
+        total = float(total)
+        val = float(self.discount_value)
+        if self.discount_type == 'percent':
+            return round(min(total * val / 100, total), 2)
+        return round(min(val, total), 2)
+
+    def __repr__(self):
+        return f'<Coupon {self.code}>'
+
 
 class CartItem(db.Model):
     __tablename__ = 'cart_items'
@@ -151,9 +216,11 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     total = db.Column(db.Numeric(10, 2), nullable=False)
-    payment_method = db.Column(db.String(50), nullable=False)  # 'mercadopago', 'tarjeta', 'transferencia'
-    status = db.Column(db.String(30), default='pendiente')  # pendiente, pagado, enviado, completado, cancelado
-    delivery_type = db.Column(db.String(20), default='envio')  # 'envio' o 'retiro'
+    discount_amount = db.Column(db.Numeric(10, 2), default=0)
+    coupon_id = db.Column(db.Integer, db.ForeignKey('coupons.id'), nullable=True)
+    payment_method = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(30), default='pendiente')
+    delivery_type = db.Column(db.String(20), default='envio')
     address = db.Column(db.Text)
     city = db.Column(db.String(100))
     province = db.Column(db.String(100))
@@ -161,12 +228,17 @@ class Order(db.Model):
     country = db.Column(db.String(100), default='Argentina')
     phone = db.Column(db.String(50))
     notes = db.Column(db.Text)
-    mp_preference_id = db.Column(db.String(200))  # MercadoPago preference id
-    mp_payment_id = db.Column(db.String(200))  # MercadoPago payment id
+    tracking_number = db.Column(db.String(100))
+    mp_preference_id = db.Column(db.String(200))
+    mp_payment_id = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('orders', lazy='dynamic'))
+    coupon = db.relationship('Coupon', backref='orders')
     items = db.relationship('OrderItem', backref='order', lazy='dynamic', cascade='all, delete-orphan')
+    status_history = db.relationship('OrderStatusHistory', backref='order', lazy='dynamic',
+                                     order_by='OrderStatusHistory.changed_at',
+                                     cascade='all, delete-orphan')
 
     @property
     def full_address(self):
@@ -192,3 +264,16 @@ class OrderItem(db.Model):
     @property
     def subtotal(self):
         return self.price * self.quantity
+
+
+class OrderStatusHistory(db.Model):
+    __tablename__ = 'order_status_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False, index=True)
+    status = db.Column(db.String(30), nullable=False)
+    note = db.Column(db.String(200))
+    changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<OrderStatusHistory order={self.order_id} status={self.status}>'

@@ -1,12 +1,15 @@
 import os
 import uuid
+from datetime import datetime, timedelta
 from functools import wraps
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import Product, Category, User, CartItem, Order, OrderItem, Material, Color, ProductImage
-from app.admin.forms import ProductForm, ColorForm, MaterialForm, CategoryForm
+from app.models import (Product, Category, User, CartItem, Order, OrderItem,
+                        Material, Color, ProductImage, Coupon, OrderStatusHistory)
+from app.admin.forms import ProductForm, ColorForm, MaterialForm, CategoryForm, CouponForm
 
 admin_bp = Blueprint('admin', __name__, template_folder='templates')
 
@@ -32,7 +35,6 @@ def _save_image(file):
 
     file_bytes = file.read()
 
-    # Reject if content doesn't parse as a valid image (prevents disguised files)
     try:
         from PIL import Image
         import io as _io
@@ -73,13 +75,57 @@ def dashboard():
     total_orders = Order.query.count()
     recent_products = Product.query.order_by(Product.created_at.desc()).limit(5).all()
     recent_orders = Order.query.order_by(Order.created_at.desc()).limit(5).all()
+
+    # Ingresos del mes actual
+    now = datetime.utcnow()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_revenue = db.session.query(func.sum(Order.total)).filter(
+        Order.created_at >= month_start,
+        Order.status.in_(['pagado', 'enviado', 'completado'])
+    ).scalar() or 0
+
+    # Pedidos por estado
+    status_counts = dict(db.session.query(Order.status, func.count(Order.id))
+                         .group_by(Order.status).all())
+
+    # Productos más vendidos (top 5)
+    top_products = db.session.query(
+        OrderItem.product_name,
+        func.sum(OrderItem.quantity).label('total_qty')
+    ).group_by(OrderItem.product_name)\
+     .order_by(func.sum(OrderItem.quantity).desc())\
+     .limit(5).all()
+
+    # Ventas últimos 6 meses para gráfico
+    sales_data = []
+    for i in range(5, -1, -1):
+        d = now - timedelta(days=30 * i)
+        m_start = d.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if d.month == 12:
+            m_end = d.replace(year=d.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            m_end = d.replace(month=d.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        revenue = db.session.query(func.sum(Order.total)).filter(
+            Order.created_at >= m_start,
+            Order.created_at < m_end,
+            Order.status.in_(['pagado', 'enviado', 'completado'])
+        ).scalar() or 0
+        sales_data.append({
+            'month': d.strftime('%b %Y'),
+            'revenue': float(revenue)
+        })
+
     return render_template('admin/dashboard.html',
                            total_products=total_products,
                            total_users=total_users,
                            total_categories=total_categories,
                            total_orders=total_orders,
                            recent_products=recent_products,
-                           recent_orders=recent_orders)
+                           recent_orders=recent_orders,
+                           monthly_revenue=monthly_revenue,
+                           status_counts=status_counts,
+                           top_products=top_products,
+                           sales_data=sales_data)
 
 
 # ──────────────────── Productos ────────────────────
@@ -120,14 +166,12 @@ def product_create():
             active=form.active.data,
         )
 
-        # Colores
         selected_colors = Color.query.filter(Color.id.in_(form.color_ids.data)).all()
         product.colors = selected_colors
 
         db.session.add(product)
         db.session.flush()
 
-        # Imágenes múltiples
         files = request.files.getlist('images')
         pos = 0
         for f in files:
@@ -168,11 +212,9 @@ def product_edit(product_id):
         product.featured = form.featured.data
         product.active = form.active.data
 
-        # Colores
         selected_colors = Color.query.filter(Color.id.in_(form.color_ids.data)).all()
         product.colors = selected_colors
 
-        # Eliminar imágenes marcadas
         deleted_ids = request.form.getlist('delete_images')
         if deleted_ids:
             for img_id in deleted_ids:
@@ -183,7 +225,6 @@ def product_edit(product_id):
                         os.remove(path)
                     db.session.delete(img)
 
-        # Nuevas imágenes
         files = request.files.getlist('images')
         last_pos = db.session.query(db.func.coalesce(db.func.max(ProductImage.position), -1)).filter_by(product_id=product.id).scalar()
         pos = (last_pos or -1) + 1
@@ -207,7 +248,6 @@ def product_delete(product_id):
 
     CartItem.query.filter_by(product_id=product.id).delete()
 
-    # Borrar imágenes del filesystem
     for img in product.images.all():
         path = os.path.join(current_app.config['UPLOAD_FOLDER'], img.filename)
         if os.path.exists(path):
@@ -372,6 +412,66 @@ def category_delete(cat_id):
     return redirect(url_for('admin.categories_list'))
 
 
+# ──────────────────── Cupones ────────────────────
+
+@admin_bp.route('/cupones')
+@admin_required
+def coupons():
+    all_coupons = Coupon.query.order_by(Coupon.created_at.desc()).all()
+    return render_template('admin/coupons.html', coupons=all_coupons)
+
+
+@admin_bp.route('/cupones/nuevo', methods=['GET', 'POST'])
+@admin_required
+def coupon_create():
+    form = CouponForm()
+    if form.validate_on_submit():
+        code = form.code.data.strip().upper()
+        if Coupon.query.filter_by(code=code).first():
+            flash('Ya existe un cupón con ese código.', 'warning')
+        else:
+            db.session.add(Coupon(
+                code=code,
+                discount_type=form.discount_type.data,
+                discount_value=form.discount_value.data,
+                active=form.active.data,
+                uses_left=form.uses_left.data or None,
+                min_order=form.min_order.data or 0,
+            ))
+            db.session.commit()
+            flash('Cupón creado.', 'success')
+            return redirect(url_for('admin.coupons'))
+    return render_template('admin/coupon_form.html', form=form, editing=False)
+
+
+@admin_bp.route('/cupones/<int:coupon_id>/editar', methods=['GET', 'POST'])
+@admin_required
+def coupon_edit(coupon_id):
+    coupon = Coupon.query.get_or_404(coupon_id)
+    form = CouponForm(obj=coupon)
+    if form.validate_on_submit():
+        coupon.code = form.code.data.strip().upper()
+        coupon.discount_type = form.discount_type.data
+        coupon.discount_value = form.discount_value.data
+        coupon.active = form.active.data
+        coupon.uses_left = form.uses_left.data or None
+        coupon.min_order = form.min_order.data or 0
+        db.session.commit()
+        flash('Cupón actualizado.', 'success')
+        return redirect(url_for('admin.coupons'))
+    return render_template('admin/coupon_form.html', form=form, editing=True, coupon=coupon)
+
+
+@admin_bp.route('/cupones/<int:coupon_id>/eliminar', methods=['POST'])
+@admin_required
+def coupon_delete(coupon_id):
+    coupon = Coupon.query.get_or_404(coupon_id)
+    db.session.delete(coupon)
+    db.session.commit()
+    flash('Cupón eliminado.', 'success')
+    return redirect(url_for('admin.coupons'))
+
+
 # ──────────────────── Pedidos ────────────────────
 
 @admin_bp.route('/pedidos')
@@ -390,7 +490,8 @@ def orders():
 @admin_required
 def order_detail(order_id):
     order = Order.query.get_or_404(order_id)
-    return render_template('admin/order_detail.html', order=order)
+    history = order.status_history.order_by(OrderStatusHistory.changed_at).all()
+    return render_template('admin/order_detail.html', order=order, history=history)
 
 
 @admin_bp.route('/pedidos/<int:order_id>/estado', methods=['POST'])
@@ -398,11 +499,23 @@ def order_detail(order_id):
 def order_update_status(order_id):
     order = Order.query.get_or_404(order_id)
     new_status = request.form.get('status', '')
+    tracking = request.form.get('tracking_number', '').strip()
+    note = request.form.get('note', '').strip()
+
     valid_statuses = ['pendiente', 'pagado', 'enviado', 'completado', 'cancelado']
     if new_status in valid_statuses:
+        changed = order.status != new_status
         order.status = new_status
+        if tracking:
+            order.tracking_number = tracking
+        if changed:
+            db.session.add(OrderStatusHistory(
+                order_id=order.id,
+                status=new_status,
+                note=note or None
+            ))
         db.session.commit()
-        flash(f'Estado del pedido #{order.id} actualizado a "{new_status}".', 'success')
+        flash(f'Pedido #{order.id} actualizado a "{new_status}".', 'success')
     else:
         flash('Estado inválido.', 'danger')
     return redirect(url_for('admin.order_detail', order_id=order.id))

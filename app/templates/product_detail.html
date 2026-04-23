@@ -1,87 +1,28 @@
 {% extends "base.html" %}
 {% block title %}{{ product.name }}{% endblock %}
+{% block meta_description %}{{ product.description[:150] if product.description else product.name + ' — UrbanPlast muebles de exterior.' }}{% endblock %}
+{% block og_title %}{{ product.name }} — UrbanPlast{% endblock %}
+{% block og_description %}{{ product.description[:200] if product.description else 'Mueble de exterior de alta calidad.' }}{% endblock %}
+{% block og_image %}{{ product.image_url }}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .product-gallery {
-        position: relative;
-        border-radius: 12px;
-        overflow: hidden;
-        background: #f8f9fa;
-    }
-    .gallery-main {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 350px;
-    }
-    .gallery-main img {
-        max-width: 100%;
-        max-height: 450px;
-        object-fit: contain;
-        transition: opacity 0.3s ease;
-    }
-    .gallery-arrow {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(255,255,255,0.85);
-        border: none;
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 2;
-        transition: background 0.2s, box-shadow 0.2s;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        font-size: 1.1rem;
-        color: #333;
-    }
-    .gallery-arrow:hover {
-        background: #fff;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-    }
-    .gallery-prev { left: 12px; }
-    .gallery-next { right: 12px; }
-    .gallery-thumbs {
-        display: flex;
-        gap: 8px;
-        padding: 10px;
-        overflow-x: auto;
-        justify-content: center;
-    }
-    .gallery-thumb {
-        width: 60px;
-        height: 60px;
-        border-radius: 8px;
-        object-fit: cover;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: border-color 0.2s, opacity 0.2s;
-        opacity: 0.6;
-    }
-    .gallery-thumb.active, .gallery-thumb:hover {
-        border-color: var(--up-green);
-        opacity: 1;
-    }
-    .gallery-counter {
-        text-align: center;
-        font-size: 0.8rem;
-        color: #999;
-        padding-bottom: 6px;
-    }
-    .color-swatch {
-        display: inline-block;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: 2px solid #dee2e6;
-        vertical-align: middle;
-    }
+    .product-gallery { position: relative; border-radius: 12px; overflow: hidden; background: #f8f9fa; }
+    .gallery-main { position: relative; display: flex; align-items: center; justify-content: center; min-height: 350px; }
+    .gallery-main img { max-width: 100%; max-height: 450px; object-fit: contain; transition: opacity 0.3s ease; }
+    .gallery-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.85); border: none; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; transition: background 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 1.1rem; color: #333; }
+    .gallery-arrow:hover { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
+    .gallery-prev { left: 12px; } .gallery-next { right: 12px; }
+    .gallery-thumbs { display: flex; gap: 8px; padding: 10px; overflow-x: auto; justify-content: center; }
+    .gallery-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s, opacity 0.2s; opacity: 0.6; }
+    .gallery-thumb.active, .gallery-thumb:hover { border-color: var(--up-green); opacity: 1; }
+    .gallery-counter { text-align: center; font-size: 0.8rem; color: #999; padding-bottom: 6px; }
+    .color-swatch { display: inline-block; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #dee2e6; vertical-align: middle; }
+    .star-rating { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; }
+    .star-rating input { display: none; }
+    .star-rating label { font-size: 1.6rem; color: #ccc; cursor: pointer; }
+    .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: #ffc107; }
+    .review-stars i { font-size: .9rem; }
 </style>
 {% endblock %}
 
@@ -119,14 +60,39 @@
                 {% endif %}
             </div>
         </div>
+
         <div class="col-md-6">
-            <h2 class="fw-bold">{{ product.name }}</h2>
-            <div class="mb-3">
+            <div class="d-flex align-items-start justify-content-between">
+                <h2 class="fw-bold">{{ product.name }}</h2>
+                {% if current_user.is_authenticated %}
+                <button class="btn btn-outline-danger btn-sm ms-2 wishlist-btn-detail"
+                        data-product-id="{{ product.id }}"
+                        data-in-wishlist="{{ 'true' if in_wishlist else 'false' }}"
+                        title="{{ 'Quitar de favoritos' if in_wishlist else 'Agregar a favoritos' }}">
+                    <i class="bi bi-heart{% if in_wishlist %}-fill{% endif %}"></i>
+                    {{ 'En favoritos' if in_wishlist else 'Favoritos' }}
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="mb-2">
                 <span class="badge bg-secondary">{{ product.category.name }}</span>
                 {% if product.material_name %}
                 <span class="badge bg-info">{{ product.material_name }}</span>
                 {% endif %}
             </div>
+
+            {% if product.avg_rating %}
+            <div class="mb-2 d-flex align-items-center gap-2">
+                <div class="review-stars">
+                    {% for i in range(1, 6) %}
+                    <i class="bi bi-star{% if i <= product.avg_rating %}-fill text-warning{% else %} text-muted{% endif %}"></i>
+                    {% endfor %}
+                </div>
+                <span class="text-muted small">{{ product.avg_rating }} / 5 ({{ product.review_count }} reseña{{ 's' if product.review_count != 1 }})</span>
+            </div>
+            {% endif %}
+
             <h3 class="text-up-green fw-bold">${{ "%.2f"|format(product.price) }}</h3>
 
             {% if product.stock > 0 %}
@@ -161,6 +127,79 @@
                     <i class="bi bi-cart-plus"></i> Agregar al carrito
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Reseñas -->
+    <hr class="my-5">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <h4 class="mb-4"><i class="bi bi-star-half"></i> Reseñas ({{ product.review_count }})</h4>
+
+            {% if current_user.is_authenticated and not user_reviewed %}
+                {% if user_purchased %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">Dejá tu reseña</h6>
+                        <form method="POST" action="{{ url_for('main.add_review', slug=product.slug) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Calificación</label>
+                                <div class="star-rating">
+                                    {% for i in range(5, 0, -1) %}
+                                    <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" required>
+                                    <label for="star{{ i }}" title="{{ i }} estrellas"><i class="bi bi-star-fill"></i></label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <textarea name="comment" class="form-control" rows="3" placeholder="Contanos tu experiencia con el producto (opcional)..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-up-green">
+                                <i class="bi bi-send"></i> Enviar reseña
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% elif current_user.is_authenticated %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Solo clientes que compraron este producto pueden dejar reseña.
+                </div>
+                {% endif %}
+            {% elif current_user.is_authenticated and user_reviewed %}
+            <div class="alert alert-success mb-4">
+                <i class="bi bi-check-circle"></i> Ya dejaste una reseña para este producto.
+            </div>
+            {% elif not current_user.is_authenticated %}
+            <div class="alert alert-secondary mb-4">
+                <a href="{{ url_for('auth.login') }}">Iniciá sesión</a> para dejar una reseña.
+            </div>
+            {% endif %}
+
+            {% if reviews %}
+            {% for review in reviews %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <strong>{{ review.user.username }}</strong>
+                            <div class="review-stars">
+                                {% for i in range(1, 6) %}
+                                <i class="bi bi-star{% if i <= review.rating %}-fill text-warning{% else %} text-muted{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ review.created_at.strftime('%d/%m/%Y') }}</small>
+                    </div>
+                    {% if review.comment %}
+                    <p class="text-muted mb-0">{{ review.comment }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted">Todavía no hay reseñas. ¡Sé el primero!</p>
+            {% endif %}
         </div>
     </div>
 
@@ -203,14 +242,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const detailBtn = document.querySelector('.add-to-cart-detail');
     if (detailBtn) {
         detailBtn.addEventListener('click', function() {
+            addToCart(this.dataset.productId, parseInt(qtyInput.value) || 1);
+        });
+    }
+
+    const wishBtn = document.querySelector('.wishlist-btn-detail');
+    if (wishBtn) {
+        wishBtn.addEventListener('click', function() {
             const productId = this.dataset.productId;
-            const quantity = parseInt(qtyInput.value) || 1;
-            addToCart(productId, quantity);
+            const csrf = document.querySelector('meta[name="csrf-token"]').content;
+            fetch(`/favoritos/toggle/${productId}`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrf, 'Content-Type': 'application/json'}
+            })
+            .then(r => r.json())
+            .then(data => {
+                const icon = this.querySelector('i');
+                if (data.in_wishlist) {
+                    icon.className = 'bi bi-heart-fill';
+                    this.innerHTML = '<i class="bi bi-heart-fill"></i> En favoritos';
+                    this.dataset.inWishlist = 'true';
+                } else {
+                    this.innerHTML = '<i class="bi bi-heart"></i> Favoritos';
+                    this.dataset.inWishlist = 'false';
+                }
+            });
         });
     }
 });
 
-// Gallery navigation
 const galleryImages = {{ product.all_image_urls | tojson }};
 let currentIdx = 0;
 

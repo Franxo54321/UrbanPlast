@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+.container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; }
+.header { background: #6c4a2a; color: #fff; padding: 20px 24px; }
+.body { padding: 24px; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+th { background: #f1f1f1; padding: 8px; text-align: left; font-size: 13px; }
+td { padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+.btn { display: inline-block; background: #2d6a4f; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 12px; }
+</style></head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0;">🛒 Nuevo pedido recibido</h2>
+        <p style="margin:4px 0 0;">Pedido #{{ order.id }} — {{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+    <div class="body">
+        <p><strong>Cliente:</strong> {{ order.user.username }} ({{ order.user.email }})</p>
+        <p><strong>Total:</strong> ${{ "%.2f"|format(order.total) }}</p>
+        <p><strong>Método de pago:</strong> {{ order.payment_method }}</p>
+        <p><strong>Entrega:</strong> {{ 'Retiro en sucursal' if order.delivery_type == 'retiro' else 'Envío a domicilio' }}</p>
+        <p><strong>Dirección:</strong> {{ order.full_address }}</p>
+
+        <table>
+            <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th></tr></thead>
+            <tbody>
+            {% for item in order.items %}
+            <tr><td>{{ item.product_name }}</td><td>{{ item.quantity }}</td><td>${{ "%.2f"|format(item.subtotal) }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <a href="{{ admin_url }}" class="btn">Ver pedido en el panel</a>
+    </div>
+</div>
+</body>
+</html>
