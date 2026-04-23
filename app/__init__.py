@@ -81,6 +81,7 @@ def create_app(config_class=Config):
 
 def _create_default_admin(app):
     from app.models import User
+    from sqlalchemy.exc import IntegrityError
     admin = User.query.filter_by(email='admin@muebles.com').first()
     if not admin:
         temp_password = secrets.token_urlsafe(16)
@@ -91,19 +92,23 @@ def _create_default_admin(app):
         )
         admin.set_password(temp_password)
         db.session.add(admin)
-        db.session.commit()
-        logging.getLogger(__name__).warning(
-            "\n" + "=" * 60 +
-            f"\nAdmin account created."
-            f"\n  email:    admin@muebles.com"
-            f"\n  password: {temp_password}"
-            f"\nCHANGE THIS PASSWORD IMMEDIATELY after first login."
-            "\n" + "=" * 60
-        )
+        try:
+            db.session.commit()
+            logging.getLogger(__name__).warning(
+                "\n" + "=" * 60 +
+                f"\nAdmin account created."
+                f"\n  email:    admin@muebles.com"
+                f"\n  password: {temp_password}"
+                f"\nCHANGE THIS PASSWORD IMMEDIATELY after first login."
+                "\n" + "=" * 60
+            )
+        except IntegrityError:
+            db.session.rollback()
 
 
 def _create_default_categories():
     from app.models import Category
+    from sqlalchemy.exc import IntegrityError
     defaults = [
         ('Sillas', 'sillas', 'Todo tipo de sillas'),
         ('Sillones', 'sillones', 'Sillones cómodos para tu hogar'),
@@ -114,13 +119,20 @@ def _create_default_categories():
     for name, slug, desc in defaults:
         if not Category.query.filter_by(slug=slug).first():
             db.session.add(Category(name=name, slug=slug, description=desc))
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
 
 
 def _create_default_materials():
     from app.models import Material
+    from sqlalchemy.exc import IntegrityError
     defaults = ['Plástico', 'Madera']
     for name in defaults:
         if not Material.query.filter_by(name=name).first():
             db.session.add(Material(name=name))
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
