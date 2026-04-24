@@ -11,59 +11,51 @@
 
             <!-- Config actual -->
             <div class="card mb-4 shadow-sm">
-                <div class="card-header fw-bold">
-                    <i class="bi bi-gear"></i> Configuración detectada
-                    {% if config_info.mail_configured %}
-                        <span class="badge bg-success ms-2">Configurado</span>
-                    {% else %}
-                        <span class="badge bg-danger ms-2">Sin configurar</span>
-                    {% endif %}
+                <div class="card-header fw-bold d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-gear"></i> Configuración detectada
+                        {% if config_info.mail_configured %}
+                            <span class="badge bg-success ms-2">Configurado</span>
+                        {% else %}
+                            <span class="badge bg-danger ms-2">Sin configurar</span>
+                        {% endif %}
+                    </span>
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-ping" onclick="pingSmtp()">
+                        <i class="bi bi-wifi"></i> Probar conexión TCP al SMTP
+                    </button>
                 </div>
                 <div class="card-body">
                     <table class="table table-sm mb-0">
                         <tbody>
-                            <tr>
-                                <th style="width:220px">MAIL_SERVER</th>
-                                <td><code>{{ config_info.MAIL_SERVER or '(vacío)' }}</code></td>
-                            </tr>
-                            <tr>
-                                <th>MAIL_PORT</th>
-                                <td><code>{{ config_info.MAIL_PORT }}</code></td>
-                            </tr>
-                            <tr>
-                                <th>MAIL_USE_TLS</th>
-                                <td><code>{{ config_info.MAIL_USE_TLS }}</code></td>
-                            </tr>
+                            <tr><th style="width:220px">MAIL_SERVER</th><td><code>{{ config_info.MAIL_SERVER or '(vacío)' }}</code></td></tr>
+                            <tr><th>MAIL_PORT</th><td><code>{{ config_info.MAIL_PORT }}</code></td></tr>
+                            <tr><th>MAIL_USE_TLS</th><td><code>{{ config_info.MAIL_USE_TLS }}</code></td></tr>
+                            <tr><th>MAIL_USE_SSL</th><td><code>{{ config_info.MAIL_USE_SSL }}</code></td></tr>
                             <tr>
                                 <th>MAIL_USERNAME</th>
                                 <td>
                                     {% if config_info.mail_configured %}
                                         <code class="text-success">{{ config_info.MAIL_USERNAME }}</code>
                                     {% else %}
-                                        <code class="text-danger">{{ config_info.MAIL_USERNAME }}</code>
+                                        <code class="text-danger">(vacío — emails desactivados)</code>
                                     {% endif %}
                                 </td>
                             </tr>
-                            <tr>
-                                <th>MAIL_PASSWORD</th>
-                                <td><code>{{ '••••••••' if config_info.mail_configured else '(vacío)' }}</code></td>
-                            </tr>
-                            <tr>
-                                <th>MAIL_DEFAULT_SENDER</th>
-                                <td><code>{{ config_info.MAIL_DEFAULT_SENDER or '(vacío)' }}</code></td>
-                            </tr>
+                            <tr><th>MAIL_PASSWORD</th><td><code>{{ '••••••••' if config_info.mail_configured else '(vacío)' }}</code></td></tr>
+                            <tr><th>MAIL_DEFAULT_SENDER</th><td><code>{{ config_info.MAIL_DEFAULT_SENDER or '(vacío)' }}</code></td></tr>
                         </tbody>
                     </table>
 
+                    <div id="ping-result" class="mt-3" style="display:none"></div>
+
                     {% if not config_info.mail_configured %}
                     <div class="alert alert-warning mt-3 mb-0">
-                        <strong>MAIL_USERNAME está vacío.</strong> Configurá las variables de entorno en tu <code>.env</code> o en Railway:
+                        <strong>MAIL_USERNAME está vacío.</strong> Configurá estas variables de entorno en Railway:
                         <ul class="mb-0 mt-2">
                             <li><code>MAIL_SERVER=smtp.gmail.com</code></li>
                             <li><code>MAIL_PORT=587</code></li>
                             <li><code>MAIL_USE_TLS=true</code></li>
                             <li><code>MAIL_USERNAME=tu@gmail.com</code></li>
-                            <li><code>MAIL_PASSWORD=tu_app_password</code></li>
+                            <li><code>MAIL_PASSWORD=tu_app_password_de_google</code></li>
                             <li><code>MAIL_DEFAULT_SENDER=tu@gmail.com</code></li>
                         </ul>
                     </div>
@@ -71,7 +63,7 @@
                 </div>
             </div>
 
-            <!-- Resultado del envío anterior -->
+            <!-- Resultado del envío -->
             {% if result %}
             <div class="alert {% if result.ok %}alert-success{% else %}alert-danger{% endif %} mb-4">
                 {% if result.ok %}
@@ -79,48 +71,47 @@
                     Email enviado exitosamente a <strong>{{ result.recipient }}</strong>.
                 {% else %}
                     <i class="bi bi-x-circle-fill"></i>
-                    <strong>Error al enviar:</strong><br>
+                    <strong>Error:</strong><br>
                     <pre class="mb-0 mt-2" style="font-size:.85rem;white-space:pre-wrap">{{ result.error }}</pre>
+                    {% if 'Timeout' in result.error or 'bloqueando' in result.error %}
+                    <hr>
+                    <strong>Solución recomendada para Railway:</strong> el hosting bloquea el SMTP saliente.
+                    Usá <a href="https://sendgrid.com" target="_blank">SendGrid</a> o
+                    <a href="https://www.brevo.com" target="_blank">Brevo</a> — ambos tienen plan gratuito
+                    y envían por API HTTP en vez de SMTP directo.
+                    {% endif %}
                 {% endif %}
             </div>
             {% endif %}
 
-            <!-- Formulario de test -->
+            <!-- Formulario -->
             <div class="card shadow-sm">
                 <div class="card-header fw-bold"><i class="bi bi-send"></i> Enviar email de prueba</div>
                 <div class="card-body">
                     <form method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Destinatario *</label>
-                            <input type="email" name="recipient"
-                                   class="form-control"
+                            <input type="email" name="recipient" class="form-control"
                                    placeholder="ejemplo@gmail.com"
-                                   value="{{ request.form.get('recipient', '') }}"
-                                   required>
+                                   value="{{ request.form.get('recipient', '') }}" required>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Asunto</label>
-                            <input type="text" name="subject"
-                                   class="form-control"
+                            <input type="text" name="subject" class="form-control"
                                    value="{{ request.form.get('subject', 'Test de email — UrbanPlast') }}">
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Mensaje</label>
-                            <textarea name="body" class="form-control" rows="4">{{ request.form.get('body', 'Este es un email de prueba enviado desde el panel de administración de UrbanPlast.') }}</textarea>
+                            <textarea name="body" class="form-control" rows="3">{{ request.form.get('body', 'Este es un email de prueba enviado desde el panel de administración de UrbanPlast.') }}</textarea>
                         </div>
-
-                        <button type="submit"
-                                class="btn btn-up-green"
-                                {% if not config_info.mail_configured %}disabled title="Configurá MAIL_USERNAME primero"{% endif %}>
+                        <button type="submit" class="btn btn-up-green"
+                                {% if not config_info.mail_configured %}disabled{% endif %}>
                             <i class="bi bi-send-fill"></i> Enviar
+                            <small class="ms-1 opacity-75">(espera hasta 20s)</small>
                         </button>
-
                         {% if not config_info.mail_configured %}
-                        <small class="text-muted ms-2">El botón está deshabilitado porque MAIL_USERNAME no está configurado.</small>
+                        <small class="text-muted ms-2">Deshabilitado — MAIL_USERNAME vacío.</small>
                         {% endif %}
                     </form>
                 </div>
@@ -129,4 +120,36 @@
         </div>
     </div>
 </div>
+
+<script>
+function pingSmtp() {
+    const btn = document.getElementById('btn-ping');
+    const res = document.getElementById('ping-result');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Probando...';
+    res.style.display = 'none';
+
+    fetch('{{ url_for("admin.test_email_ping") }}')
+        .then(r => r.json())
+        .then(data => {
+            res.style.display = 'block';
+            if (data.ok) {
+                res.className = 'alert alert-success mt-3';
+                res.innerHTML = '<i class="bi bi-check-circle-fill"></i> Conexión TCP exitosa a <strong>' + data.host + ':' + data.port + '</strong>. El puerto está abierto.';
+            } else {
+                res.className = 'alert alert-danger mt-3';
+                res.innerHTML = '<i class="bi bi-x-circle-fill"></i> <strong>' + (data.error || 'Sin respuesta') + '</strong>';
+            }
+        })
+        .catch(() => {
+            res.style.display = 'block';
+            res.className = 'alert alert-danger mt-3';
+            res.innerHTML = 'Error al hacer el diagnóstico.';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-wifi"></i> Probar conexión TCP al SMTP';
+        });
+}
+</script>
 {% endblock %}
