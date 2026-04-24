@@ -20,7 +20,8 @@
                         {% endif %}
                     </span>
                     <button class="btn btn-sm btn-outline-secondary" id="btn-ping" onclick="pingSmtp()">
-                        <i class="bi bi-wifi"></i> Probar conexión TCP al SMTP
+                        <i class="bi bi-wifi"></i>
+                        {% if config_info.brevo_configured %}Verificar cuenta Brevo API{% else %}Probar conexión SMTP{% endif %}
                     </button>
                 </div>
                 <div class="card-body">
@@ -137,10 +138,18 @@ function pingSmtp() {
             res.style.display = 'block';
             if (data.ok) {
                 res.className = 'alert alert-success mt-3';
-                res.innerHTML = '<i class="bi bi-check-circle-fill"></i> Conexión TCP exitosa a <strong>' + data.host + ':' + data.port + '</strong>. El puerto está abierto.';
+                if (data.mode === 'brevo_api') {
+                    res.innerHTML = '<i class="bi bi-check-circle-fill"></i> Brevo API conectada. ' + (data.info || '');
+                } else {
+                    res.innerHTML = '<i class="bi bi-check-circle-fill"></i> Puerto SMTP abierto: <strong>' + data.host + ':' + data.port + '</strong>';
+                }
             } else {
                 res.className = 'alert alert-danger mt-3';
-                res.innerHTML = '<i class="bi bi-x-circle-fill"></i> <strong>' + (data.error || 'Sin respuesta') + '</strong>';
+                if (data.mode === 'brevo_api') {
+                    res.innerHTML = '<i class="bi bi-x-circle-fill"></i> Error con Brevo API: <strong>' + (data.error || 'Sin respuesta') + '</strong>';
+                } else {
+                    res.innerHTML = '<i class="bi bi-x-circle-fill"></i> SMTP bloqueado (irrelevante si usás Brevo API): <strong>' + (data.error || '') + '</strong>';
+                }
             }
         })
         .catch(() => {

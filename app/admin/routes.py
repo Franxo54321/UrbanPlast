@@ -608,10 +608,26 @@ def _smtp_ping(host, port, timeout=8):
 @admin_required
 def test_email_ping():
     app = current_app._get_current_object()
-    host = app.config.get('MAIL_SERVER', '')
-    port = int(app.config.get('MAIL_PORT', 587))
-    ok, err = _smtp_ping(host, port)
-    return jsonify({'ok': ok, 'host': host, 'port': port, 'error': err})
+    if app.config.get('BREVO_API_KEY'):
+        # Con Brevo API key, probamos el endpoint HTTP (no SMTP)
+        import requests as _req
+        try:
+            r = _req.get('https://api.brevo.com/v3/account',
+                         headers={'api-key': app.config['BREVO_API_KEY']},
+                         timeout=8)
+            if r.status_code == 200:
+                data = r.json()
+                return jsonify({'ok': True, 'mode': 'brevo_api',
+                                'info': f"Cuenta: {data.get('email', '')} — Plan: {data.get('plan', [{}])[0].get('type', '?')}"})
+            return jsonify({'ok': False, 'mode': 'brevo_api',
+                            'error': f'Brevo API respondió {r.status_code}: {r.text[:200]}'})
+        except Exception as e:
+            return jsonify({'ok': False, 'mode': 'brevo_api', 'error': str(e)})
+    else:
+        host = app.config.get('MAIL_SERVER', '')
+        port = int(app.config.get('MAIL_PORT', 587))
+        ok, err = _smtp_ping(host, port)
+        return jsonify({'ok': ok, 'mode': 'smtp', 'host': host, 'port': port, 'error': err})
 
 
 @admin_bp.route('/test-email', methods=['GET', 'POST'])
