@@ -225,6 +225,25 @@ def api_products():
     } for p in products])
 
 
+@main_bp.route('/api/buscar')
+def search_suggestions():
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify([])
+    like = f'%{q}%'
+    results = Product.query.filter(
+        Product.active == True,
+        db.or_(Product.name.ilike(like), Product.description.ilike(like))
+    ).limit(6).all()
+    return jsonify([{
+        'name': p.name,
+        'slug': p.slug,
+        'price': f'${float(p.price):.2f}',
+        'image': p.image_url,
+        'category': p.category.name
+    } for p in results])
+
+
 @main_bp.route('/api/categorias')
 def api_categories():
     categories = Category.query.all()

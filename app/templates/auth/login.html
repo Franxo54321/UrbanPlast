@@ -29,6 +29,9 @@
                             <label class="form-check-label">{{ form.remember.label.text }}</label>
                         </div>
                         <button type="submit" class="btn btn-up-green w-100 btn-lg">Ingresar</button>
+                        <div class="text-center mt-2">
+                            <a href="{{ url_for('auth.forgot_password') }}" class="small text-muted">¿Olvidaste tu contraseña?</a>
+                        </div>
                     </form>
                     <hr>
                     <p class="text-center mb-0">¿No tenés cuenta? <a href="{{ url_for('auth.register') }}">Registrate</a></p>

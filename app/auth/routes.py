@@ -1,10 +1,10 @@
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db, limiter
 from app.models import User
-from app.auth.forms import LoginForm, RegisterForm, ProfileForm, ChangePasswordForm
+from app.auth.forms import LoginForm, RegisterForm, ProfileForm, ChangePasswordForm, ForgotPasswordForm, ResetPasswordForm
 
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
@@ -119,6 +119,51 @@ def _send_email_bg(app, recipient, subject, html):
             logging.getLogger(__name__).error(f'Error enviando email a {recipient}: {e}')
 
     threading.Thread(target=_bg, daemon=True).start()
+
+
+@auth_bp.route('/recuperar', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data.strip()).first()
+        if user and user.email_verified:
+            token = secrets.token_urlsafe(32)
+            user.reset_token = token
+            user.reset_token_expiry = datetime.utcnow() + timedelta(hours=2)
+            db.session.commit()
+            _app = current_app._get_current_object()
+            base_url = current_app.config.get('BASE_URL', '').rstrip('/')
+            reset_url = f"{base_url}/auth/reset/{token}"
+            html = render_template('emails/reset_password.html',
+                                   username=user.username,
+                                   reset_url=reset_url,
+                                   now=datetime.utcnow())
+            _send_email_bg(_app, user.email, 'UrbanPlast — Recuperar contraseña', html)
+        flash('Si el email existe y está verificado, te enviamos el link de recuperación.', 'info')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/forgot_password.html', form=form)
+
+
+@auth_bp.route('/reset/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    user = User.query.filter_by(reset_token=token).first()
+    if not user or not user.reset_token_expiry or user.reset_token_expiry < datetime.utcnow():
+        flash('El link de recuperación es inválido o expiró (válido por 2 horas).', 'danger')
+        return redirect(url_for('auth.forgot_password'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.new_password.data)
+        user.reset_token = None
+        user.reset_token_expiry = None
+        db.session.commit()
+        flash('¡Contraseña cambiada! Ya podés iniciar sesión.', 'success')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/reset_password.html', form=form)
 
 
 @auth_bp.route('/logout')

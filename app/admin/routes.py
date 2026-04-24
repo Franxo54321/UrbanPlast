@@ -569,10 +569,45 @@ def order_update_status(order_id):
                 note=note or None
             ))
         db.session.commit()
+
+        if changed and new_status in ('pagado', 'enviado', 'completado', 'cancelado'):
+            _notify_order_status(order, new_status, note, tracking)
+
         flash(f'Pedido #{order.id} actualizado a "{new_status}".', 'success')
     else:
         flash('Estado inválido.', 'danger')
     return redirect(url_for('admin.order_detail', order_id=order.id))
+
+
+def _notify_order_status(order, status, note, tracking):
+    from app.email_utils import send_email, is_email_configured
+    if not is_email_configured():
+        return
+    try:
+        base = current_app.config.get('BASE_URL', '').rstrip('/')
+        order_url = f"{base}/mis-pedidos/{order.id}"
+        html = render_template('emails/order_status.html',
+                               order=order,
+                               status=status,
+                               note=note or None,
+                               tracking=tracking or None,
+                               order_url=order_url,
+                               now=datetime.utcnow())
+        _app = current_app._get_current_object()
+        recipient = order.user.email
+
+        import threading
+        def _bg():
+            send_email(
+                subject=f'UrbanPlast — Pedido #{order.id}: {status}',
+                recipients=[recipient],
+                html=html,
+                app=_app
+            )
+        threading.Thread(target=_bg, daemon=True).start()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f'Error enviando notificación de pedido: {e}')
 
 
 # ──────────────────── Test Email ────────────────────

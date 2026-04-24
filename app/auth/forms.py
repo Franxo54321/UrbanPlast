@@ -52,6 +52,21 @@ class ChangePasswordForm(FlaskForm):
     submit = SubmitField('Cambiar contraseña')
 
 
+class ForgotPasswordForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Enviar link de recuperación')
+
+
+class ResetPasswordForm(FlaskForm):
+    new_password = PasswordField('Nueva contraseña', validators=[
+        DataRequired(), Length(min=8, message='Mínimo 8 caracteres')
+    ])
+    confirm_password = PasswordField('Confirmar contraseña', validators=[
+        DataRequired(), EqualTo('new_password', message='Las contraseñas no coinciden')
+    ])
+    submit = SubmitField('Cambiar contraseña')
+
+
 class CheckoutForm(FlaskForm):
     delivery_type = SelectField('Tipo de entrega', choices=[
         ('envio', '📦 Envío a domicilio'),

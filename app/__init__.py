@@ -72,11 +72,25 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        _migrate_schema()
         _create_default_admin(app)
         _create_default_categories()
         _create_default_materials()
 
     return app
+
+
+def _migrate_schema():
+    from sqlalchemy import text, inspect
+    inspector = inspect(db.engine)
+    cols = {c['name'] for c in inspector.get_columns('users')}
+    with db.engine.connect() as conn:
+        if 'reset_token' not in cols:
+            conn.execute(text('ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)'))
+            conn.commit()
+        if 'reset_token_expiry' not in cols:
+            conn.execute(text('ALTER TABLE users ADD COLUMN reset_token_expiry TIMESTAMP'))
+            conn.commit()
 
 
 def _create_default_admin(app):
