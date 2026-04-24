@@ -82,7 +82,10 @@ def create_app(config_class=Config):
 def _create_default_admin(app):
     from app.models import User
     from sqlalchemy.exc import IntegrityError
-    admin = User.query.filter_by(email='admin@muebles.com').first()
+    from sqlalchemy import or_
+    admin = User.query.filter(
+        or_(User.email == 'admin@muebles.com', User.username == 'admin')
+    ).first()
     if not admin:
         temp_password = secrets.token_urlsafe(16)
         admin = User(
