@@ -577,3 +577,51 @@ def order_update_status(order_id):
     else:
         flash('Estado inválido.', 'danger')
     return redirect(url_for('admin.order_detail', order_id=order.id))
+
+
+# ──────────────────── Test Email ────────────────────
+
+@admin_bp.route('/test-email', methods=['GET', 'POST'])
+@admin_required
+def test_email():
+    from app import mail
+    from flask_mail import Message
+
+    config_info = {
+        'MAIL_SERVER': current_app.config.get('MAIL_SERVER', ''),
+        'MAIL_PORT': current_app.config.get('MAIL_PORT', ''),
+        'MAIL_USE_TLS': current_app.config.get('MAIL_USE_TLS', ''),
+        'MAIL_USERNAME': current_app.config.get('MAIL_USERNAME', '') or '(no configurado)',
+        'MAIL_DEFAULT_SENDER': current_app.config.get('MAIL_DEFAULT_SENDER', ''),
+        'mail_configured': bool(current_app.config.get('MAIL_USERNAME')),
+    }
+
+    result = None
+    if request.method == 'POST':
+        recipient = request.form.get('recipient', '').strip()
+        subject = request.form.get('subject', 'Test de email — UrbanPlast').strip()
+        body = request.form.get('body', 'Este es un email de prueba enviado desde el panel de administración.').strip()
+
+        if not recipient:
+            flash('Ingresá un destinatario.', 'danger')
+        elif not config_info['mail_configured']:
+            flash('El servidor de email no está configurado (MAIL_USERNAME vacío).', 'danger')
+        else:
+            try:
+                msg = Message(
+                    subject=subject,
+                    recipients=[recipient],
+                    body=body,
+                    html=f'<p>{body}</p><hr><small>Enviado desde el panel admin de UrbanPlast</small>'
+                )
+                mail.send(msg)
+                result = {'ok': True, 'recipient': recipient}
+                flash(f'Email enviado correctamente a {recipient}.', 'success')
+            except Exception as e:
+                result = {'ok': False, 'error': str(e)}
+                flash(f'Error al enviar: {e}', 'danger')
+
+    return render_template('admin/test_email.html',
+                           active_page='test_email',
+                           config_info=config_info,
+                           result=result)

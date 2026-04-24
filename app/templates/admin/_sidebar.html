@@ -30,6 +30,9 @@
         <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}">
             <i class="bi bi-people"></i> Usuarios
         </a>
+        <a href="{{ url_for('admin.test_email') }}" class="list-group-item list-group-item-action {% if active_page == 'test_email' %}active{% endif %}">
+            <i class="bi bi-envelope-check"></i> Test Email
+        </a>
         <a href="{{ url_for('main.index') }}" class="list-group-item list-group-item-action text-muted">
             <i class="bi bi-arrow-left"></i> Volver al sitio
         </a>
