@@ -223,35 +223,30 @@ def checkout():
 
 def _send_order_emails(order):
     try:
-        from flask_mail import Message
-        from app import mail
-        if not current_app.config.get('MAIL_USERNAME'):
+        from app.email_utils import send_email, is_email_configured
+        if not is_email_configured():
             return
 
         now = datetime.utcnow()
 
-        # Email al cliente
         client_html = render_template('emails/order_confirmation.html', order=order, now=now)
-        msg_client = Message(
+        send_email(
             subject=f'UrbanPlast — Confirmación de pedido #{order.id}',
             recipients=[order.user.email],
             html=client_html
         )
-        mail.send(msg_client)
 
-        # Email al admin
         admin_email = current_app.config.get('ADMIN_EMAIL', '')
         if admin_email:
             base = current_app.config.get('BASE_URL', '').rstrip('/')
             admin_url = f"{base}/admin/pedidos/{order.id}"
             admin_html = render_template('emails/new_order_admin.html',
                                          order=order, admin_url=admin_url, now=now)
-            msg_admin = Message(
+            send_email(
                 subject=f'[UrbanPlast] Nuevo pedido #{order.id} — ${order.total:.2f}',
                 recipients=[admin_email],
                 html=admin_html
             )
-            mail.send(msg_admin)
     except Exception:
         pass
 

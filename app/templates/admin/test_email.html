@@ -26,21 +26,24 @@
                 <div class="card-body">
                     <table class="table table-sm mb-0">
                         <tbody>
-                            <tr><th style="width:220px">MAIL_SERVER</th><td><code>{{ config_info.MAIL_SERVER or '(vacío)' }}</code></td></tr>
-                            <tr><th>MAIL_PORT</th><td><code>{{ config_info.MAIL_PORT }}</code></td></tr>
-                            <tr><th>MAIL_USE_TLS</th><td><code>{{ config_info.MAIL_USE_TLS }}</code></td></tr>
-                            <tr><th>MAIL_USE_SSL</th><td><code>{{ config_info.MAIL_USE_SSL }}</code></td></tr>
                             <tr>
-                                <th>MAIL_USERNAME</th>
+                                <th style="width:220px">BREVO_API_KEY</th>
                                 <td>
-                                    {% if config_info.mail_configured %}
-                                        <code class="text-success">{{ config_info.MAIL_USERNAME }}</code>
+                                    {% if config_info.brevo_configured %}
+                                        <code class="text-success">{{ config_info.BREVO_API_KEY }}</code>
+                                        <span class="badge bg-success ms-1">activo — usa HTTP API</span>
                                     {% else %}
-                                        <code class="text-danger">(vacío — emails desactivados)</code>
+                                        <code class="text-danger">{{ config_info.BREVO_API_KEY }}</code>
                                     {% endif %}
                                 </td>
                             </tr>
-                            <tr><th>MAIL_PASSWORD</th><td><code>{{ '••••••••' if config_info.mail_configured else '(vacío)' }}</code></td></tr>
+                            <tr><th>MAIL_SERVER</th><td><code>{{ config_info.MAIL_SERVER or '(vacío)' }}</code></td></tr>
+                            <tr><th>MAIL_PORT</th><td><code>{{ config_info.MAIL_PORT }}</code></td></tr>
+                            <tr><th>MAIL_USE_TLS</th><td><code>{{ config_info.MAIL_USE_TLS }}</code></td></tr>
+                            <tr>
+                                <th>MAIL_USERNAME</th>
+                                <td><code>{{ config_info.MAIL_USERNAME or '(vacío)' }}</code></td>
+                            </tr>
                             <tr><th>MAIL_DEFAULT_SENDER</th><td><code>{{ config_info.MAIL_DEFAULT_SENDER or '(vacío)' }}</code></td></tr>
                         </tbody>
                     </table>
@@ -49,15 +52,14 @@
 
                     {% if not config_info.mail_configured %}
                     <div class="alert alert-warning mt-3 mb-0">
-                        <strong>MAIL_USERNAME está vacío.</strong> Configurá estas variables de entorno en Railway:
-                        <ul class="mb-0 mt-2">
-                            <li><code>MAIL_SERVER=smtp.gmail.com</code></li>
-                            <li><code>MAIL_PORT=587</code></li>
-                            <li><code>MAIL_USE_TLS=true</code></li>
-                            <li><code>MAIL_USERNAME=tu@gmail.com</code></li>
-                            <li><code>MAIL_PASSWORD=tu_app_password_de_google</code></li>
-                            <li><code>MAIL_DEFAULT_SENDER=tu@gmail.com</code></li>
-                        </ul>
+                        <strong>No hay proveedor de email activo.</strong>
+                        Railway bloquea el SMTP saliente. La solución es usar <strong>Brevo</strong> (gratis, 300 emails/día):
+                        <ol class="mb-0 mt-2">
+                            <li>Creá cuenta en <a href="https://app.brevo.com" target="_blank">brevo.com</a></li>
+                            <li>SMTP &amp; API → API Keys → generá una API key</li>
+                            <li>Agregá en Railway la variable: <code>BREVO_API_KEY=tu_api_key</code></li>
+                            <li>También configurá: <code>MAIL_DEFAULT_SENDER=tu@email.com</code> y <code>ADMIN_EMAIL=tu@email.com</code></li>
+                        </ol>
                     </div>
                     {% endif %}
                 </div>

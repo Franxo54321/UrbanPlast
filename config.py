@@ -53,6 +53,7 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@urbanplast.com')
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@urbanplast.com')
     MAIL_TIMEOUT = 10
+    BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 
     # URL base del sitio (para callbacks de MercadoPago y links de email en producción)
     BASE_URL = _get_base_url()

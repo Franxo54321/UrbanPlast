@@ -36,22 +36,20 @@ def contact():
 
 def _send_contact_email(name, email, subject, message):
     try:
-        from flask_mail import Message
-        from app import mail
+        from app.email_utils import send_email, is_email_configured
         admin_email = current_app.config.get('ADMIN_EMAIL', '')
-        if not admin_email or not current_app.config.get('MAIL_USERNAME'):
+        if not admin_email or not is_email_configured():
             return
         body = render_template('emails/contact_notification.html',
                                name=name, email=email,
                                subject=subject, message=message,
                                now=datetime.utcnow())
-        msg = Message(
+        send_email(
             subject=f'[UrbanPlast] Contacto: {subject}',
             recipients=[admin_email],
             html=body,
             reply_to=email
         )
-        mail.send(msg)
     except Exception:
         pass
 

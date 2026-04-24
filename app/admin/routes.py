@@ -503,24 +503,20 @@ def user_reset_password(user_id):
     user.set_password(new_password)
     db.session.commit()
 
-    # Intentar enviar por email
     try:
-        from flask_mail import Message
-        from app import mail
-        if current_app.config.get('MAIL_USERNAME'):
-            from datetime import datetime as _dt
-            html = f"""
-            <p>Hola <strong>{user.username}</strong>,</p>
-            <p>Un administrador reseteó tu contraseña en UrbanPlast.</p>
-            <p>Tu nueva contraseña temporal es: <strong style="font-size:18px;">{new_password}</strong></p>
-            <p>Por favor cambiala desde tu perfil una vez que ingreses.</p>
-            """
-            msg = Message(
+        from app.email_utils import send_email, is_email_configured
+        if is_email_configured():
+            html = (
+                f'<p>Hola <strong>{user.username}</strong>,</p>'
+                f'<p>Un administrador reseteó tu contraseña en UrbanPlast.</p>'
+                f'<p>Tu nueva contraseña temporal es: <strong style="font-size:18px;">{new_password}</strong></p>'
+                f'<p>Por favor cambiala desde tu perfil una vez que ingreses.</p>'
+            )
+            send_email(
                 subject='UrbanPlast — Tu contraseña fue reseteada',
                 recipients=[user.email],
                 html=html
             )
-            mail.send(msg)
             flash(f'Contraseña reseteada y enviada por email a {user.email}.', 'success')
         else:
             flash(f'Contraseña reseteada. Nueva contraseña: {new_password}', 'warning')
@@ -582,6 +578,7 @@ def order_update_status(order_id):
 # ──────────────────── Test Email ────────────────────
 
 def _get_mail_config_info(app):
+    from app.email_utils import is_email_configured
     return {
         'MAIL_SERVER': app.config.get('MAIL_SERVER', ''),
         'MAIL_PORT': app.config.get('MAIL_PORT', ''),
@@ -589,7 +586,9 @@ def _get_mail_config_info(app):
         'MAIL_USE_SSL': app.config.get('MAIL_USE_SSL', False),
         'MAIL_USERNAME': app.config.get('MAIL_USERNAME', '') or '',
         'MAIL_DEFAULT_SENDER': app.config.get('MAIL_DEFAULT_SENDER', ''),
-        'mail_configured': bool(app.config.get('MAIL_USERNAME')),
+        'BREVO_API_KEY': '••••••••' if app.config.get('BREVO_API_KEY') else '(no configurado)',
+        'brevo_configured': bool(app.config.get('BREVO_API_KEY')),
+        'mail_configured': is_email_configured(app),
     }
 
 
@@ -600,7 +599,7 @@ def _smtp_ping(host, port, timeout=8):
         s.close()
         return True, None
     except socket.timeout:
-        return False, f'Timeout: no se pudo conectar a {host}:{port} en {timeout}s (puerto bloqueado por el hosting)'
+        return False, f'Timeout: no se pudo conectar a {host}:{port} en {timeout}s (puerto bloqueado)'
     except OSError as e:
         return False, f'Error de conexión a {host}:{port} — {e}'
 
@@ -618,10 +617,7 @@ def test_email_ping():
 @admin_bp.route('/test-email', methods=['GET', 'POST'])
 @admin_required
 def test_email():
-    import queue
-    import threading
-    from app import mail
-    from flask_mail import Message
+    from app.email_utils import send_email
 
     config_info = _get_mail_config_info(current_app)
     result = None
@@ -634,46 +630,15 @@ def test_email():
         if not recipient:
             flash('Ingresá un destinatario.', 'danger')
         elif not config_info['mail_configured']:
-            flash('MAIL_USERNAME no está configurado.', 'danger')
+            flash('No hay proveedor de email configurado (BREVO_API_KEY ni MAIL_USERNAME).', 'danger')
         else:
-            result_q = queue.Queue()
-            _app = current_app._get_current_object()
-
-            def _send():
-                with _app.app_context():
-                    try:
-                        msg = Message(
-                            subject=subject,
-                            recipients=[recipient],
-                            body=body,
-                            html=f'<p>{body}</p><hr><small>Panel admin — UrbanPlast</small>'
-                        )
-                        mail.send(msg)
-                        result_q.put({'ok': True, 'recipient': recipient})
-                    except Exception as exc:
-                        result_q.put({'ok': False, 'error': str(exc)})
-
-            t = threading.Thread(target=_send, daemon=True)
-            t.start()
-            t.join(timeout=20)
-
-            if t.is_alive():
-                result = {
-                    'ok': False,
-                    'error': (
-                        f'Timeout (20s): no se pudo conectar a '
-                        f'{config_info["MAIL_SERVER"]}:{config_info["MAIL_PORT"]}.\n'
-                        'El hosting está bloqueando el puerto SMTP saliente.\n'
-                        'Solución: usá un servicio transaccional como SendGrid o Brevo '
-                        '(envían por HTTP, no por SMTP directo).'
-                    )
-                }
-            else:
-                result = result_q.get()
-
-            if result['ok']:
+            html = f'<p>{body}</p><hr><small>Panel admin — UrbanPlast</small>'
+            ok = send_email(subject=subject, recipients=[recipient], html=html)
+            if ok:
+                result = {'ok': True, 'recipient': recipient}
                 flash(f'Email enviado correctamente a {recipient}.', 'success')
             else:
+                result = {'ok': False, 'error': 'Error al enviar. Revisá los logs del servidor para el detalle.'}
                 flash('Error al enviar. Ver detalles abajo.', 'danger')
 
     return render_template('admin/test_email.html',

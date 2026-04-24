@@ -41,7 +41,8 @@ def register():
 
     form = RegisterForm()
     if form.validate_on_submit():
-        mail_configured = bool(current_app.config.get('MAIL_USERNAME'))
+        from app.email_utils import is_email_configured
+        mail_configured = is_email_configured()
         token = secrets.token_urlsafe(32) if mail_configured else None
         user = User(
             username=form.username.data,
@@ -104,12 +105,11 @@ def resend_verification():
 
 
 def _send_verification_email(user_id, app):
-    from app import mail
     from app.models import User as _User
+    from app.email_utils import send_email
     import logging
     with app.app_context():
         try:
-            from flask_mail import Message
             user = db.session.get(_User, user_id)
             if not user or not user.verification_token:
                 return
@@ -119,12 +119,12 @@ def _send_verification_email(user_id, app):
                                    username=user.username,
                                    verify_url=verify_url,
                                    now=datetime.utcnow())
-            msg = Message(
+            send_email(
                 subject='UrbanPlast — Verificá tu cuenta',
                 recipients=[user.email],
-                html=html
+                html=html,
+                app=app
             )
-            mail.send(msg)
         except Exception as e:
             logging.getLogger(__name__).error(f'Error enviando email de verificación: {e}')
 
