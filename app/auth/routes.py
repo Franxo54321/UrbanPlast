@@ -55,13 +55,14 @@ def register():
         db.session.commit()
 
         if mail_configured:
-            import threading
             _app = current_app._get_current_object()
-            threading.Thread(
-                target=_send_verification_email,
-                args=(user.id, _app),
-                daemon=True
-            ).start()
+            base_url = current_app.config.get('BASE_URL', '').rstrip('/')
+            verify_url = f"{base_url}/auth/verificar/{token}"
+            html = render_template('emails/verify_email.html',
+                                   username=user.username,
+                                   verify_url=verify_url,
+                                   now=datetime.utcnow())
+            _send_email_bg(_app, user.email, 'UrbanPlast — Verificá tu cuenta', html)
             flash('¡Cuenta creada! Te enviamos un email para verificar tu cuenta.', 'success')
         else:
             flash('¡Cuenta creada! Ya podés iniciar sesión.', 'success')
@@ -93,40 +94,31 @@ def resend_verification():
         token = secrets.token_urlsafe(32)
         user.verification_token = token
         db.session.commit()
-        import threading
         _app = current_app._get_current_object()
-        threading.Thread(
-            target=_send_verification_email,
-            args=(user.id, _app),
-            daemon=True
-        ).start()
+        base_url = current_app.config.get('BASE_URL', '').rstrip('/')
+        verify_url = f"{base_url}/auth/verificar/{token}"
+        html = render_template('emails/verify_email.html',
+                               username=user.username,
+                               verify_url=verify_url,
+                               now=datetime.utcnow())
+        _send_email_bg(_app, user.email, 'UrbanPlast — Verificá tu cuenta', html)
     flash('Si el email existe y no está verificado, te reenviamos el link.', 'info')
     return redirect(url_for('auth.login'))
 
 
-def _send_verification_email(user_id, app):
-    from app.models import User as _User
-    from app.email_utils import send_email
+def _send_email_bg(app, recipient, subject, html):
+    """Send email in background thread. HTML must be pre-rendered in request context."""
+    import threading
     import logging
-    with app.app_context():
+
+    def _bg():
+        from app.email_utils import send_email
         try:
-            user = db.session.get(_User, user_id)
-            if not user or not user.verification_token:
-                return
-            base_url = app.config.get('BASE_URL', '').rstrip('/')
-            verify_url = f"{base_url}/auth/verificar/{user.verification_token}"
-            html = render_template('emails/verify_email.html',
-                                   username=user.username,
-                                   verify_url=verify_url,
-                                   now=datetime.utcnow())
-            send_email(
-                subject='UrbanPlast — Verificá tu cuenta',
-                recipients=[user.email],
-                html=html,
-                app=app
-            )
+            send_email(subject=subject, recipients=[recipient], html=html, app=app)
         except Exception as e:
-            logging.getLogger(__name__).error(f'Error enviando email de verificación: {e}')
+            logging.getLogger(__name__).error(f'Error enviando email a {recipient}: {e}')
+
+    threading.Thread(target=_bg, daemon=True).start()
 
 
 @auth_bp.route('/logout')
