@@ -26,10 +26,16 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">{{ form.password.label.text }}</label>
-                            {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Mínimo 6 caracteres") }}
+                            {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Mínimo 6 caracteres", id="registerPassword") }}
                             {% for error in form.password.errors %}
                             <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
+                            <div id="pwStrengthBar" class="mt-2" style="display:none;">
+                                <div class="progress" style="height:5px;">
+                                    <div id="pwStrengthFill" class="progress-bar" role="progressbar" style="width:0%;transition:width .3s,background-color .3s;"></div>
+                                </div>
+                                <small id="pwStrengthLabel" class="text-muted"></small>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">{{ form.confirm_password.label.text }}</label>
@@ -47,4 +53,38 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const input = document.getElementById('registerPassword');
+    if (!input) return;
+    const bar = document.getElementById('pwStrengthBar');
+    const fill = document.getElementById('pwStrengthFill');
+    const label = document.getElementById('pwStrengthLabel');
+    const levels = [
+        { pct: 20, cls: 'bg-danger',  text: 'Muy débil' },
+        { pct: 40, cls: 'bg-warning', text: 'Débil' },
+        { pct: 60, cls: 'bg-info',    text: 'Regular' },
+        { pct: 80, cls: 'bg-primary', text: 'Fuerte' },
+        { pct: 100, cls: 'bg-success', text: 'Muy fuerte' },
+    ];
+    input.addEventListener('input', function () {
+        const v = this.value;
+        if (!v) { bar.style.display = 'none'; return; }
+        bar.style.display = 'block';
+        let score = 0;
+        if (v.length >= 6) score++;
+        if (v.length >= 10) score++;
+        if (/[A-Z]/.test(v)) score++;
+        if (/[0-9]/.test(v)) score++;
+        if (/[^A-Za-z0-9]/.test(v)) score++;
+        const l = levels[Math.max(score - 1, 0)];
+        fill.style.width = l.pct + '%';
+        fill.className = 'progress-bar ' + l.cls;
+        label.textContent = l.text;
+    });
+})();
+</script>
 {% endblock %}

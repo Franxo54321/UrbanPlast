@@ -108,7 +108,7 @@
                     <div class="card h-100 shadow-sm product-card">
                         <div class="position-relative">
                             <a href="{{ url_for('main.product_detail', slug=product.slug) }}">
-                                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" style="object-fit: cover;">
+                                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" loading="lazy" style="object-fit: cover;">
                             </a>
                             {% if current_user.is_authenticated %}
                             <button class="btn btn-sm position-absolute top-0 end-0 m-2 wishlist-btn"
@@ -133,7 +133,9 @@
                                 <small class="text-muted">({{ product.review_count }})</small>
                             </div>
                             {% endif %}
-                            {% if product.stock > 0 %}
+                            {% if product.stock > 0 and product.stock < 5 %}
+                                <small class="text-danger fw-bold"><i class="bi bi-fire"></i> ¡Últimas {{ product.stock }} unidades!</small>
+                            {% elif product.stock > 0 %}
                                 <small class="text-success"><i class="bi bi-check-circle"></i> En stock</small>
                             {% else %}
                                 <small class="text-danger"><i class="bi bi-x-circle"></i> Sin stock</small>

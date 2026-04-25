@@ -181,4 +181,119 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    // --- Mini-carrito lateral ---
+    const miniCartEl = document.getElementById('miniCart');
+    if (miniCartEl) {
+        miniCartEl.addEventListener('show.bs.offcanvas', loadMiniCart);
+    }
+
+    function loadMiniCart() {
+        const loading = document.getElementById('miniCartLoading');
+        const empty   = document.getElementById('miniCartEmpty');
+        const itemsEl = document.getElementById('miniCartItems');
+        const footer  = document.getElementById('miniCartFooter');
+        if (!loading) return;
+
+        loading.classList.remove('d-none');
+        empty.classList.add('d-none');
+        itemsEl.classList.add('d-none');
+        footer.classList.add('d-none');
+
+        fetch('/cart/items')
+            .then(function (r) { if (r.ok) return r.json(); throw r; })
+            .then(function (data) {
+                loading.classList.add('d-none');
+                if (!data.items || data.items.length === 0) {
+                    empty.classList.remove('d-none');
+                    return;
+                }
+                itemsEl.innerHTML = data.items.map(function (item) {
+                    return '<div class="d-flex gap-2 py-2 border-bottom align-items-center" id="miniRow-' + item.id + '">' +
+                        '<a href="/producto/' + item.slug + '" data-bs-dismiss="offcanvas">' +
+                        '<img src="' + item.image + '" style="width:56px;height:56px;object-fit:cover;border-radius:6px;" alt="' + item.name + '" loading="lazy"></a>' +
+                        '<div class="flex-grow-1 overflow-hidden">' +
+                        '<a href="/producto/' + item.slug + '" class="text-decoration-none text-dark small fw-semibold d-block text-truncate" data-bs-dismiss="offcanvas">' + item.name + '</a>' +
+                        '<small class="text-muted mc-unit-price" data-price="' + item.price + '">$' + item.price.toFixed(2) + ' c/u</small>' +
+                        '<div class="d-flex align-items-center gap-1 mt-1">' +
+                        '<button class="btn btn-outline-secondary btn-sm px-2 py-0 mc-qty" data-item-id="' + item.id + '" data-action="minus" style="line-height:1.6;">−</button>' +
+                        '<span class="mx-1 small fw-semibold mc-qty-num" data-item-id="' + item.id + '">' + item.quantity + '</span>' +
+                        '<button class="btn btn-outline-secondary btn-sm px-2 py-0 mc-qty" data-item-id="' + item.id + '" data-action="plus" style="line-height:1.6;">+</button>' +
+                        '</div></div>' +
+                        '<div class="text-end d-flex flex-column align-items-end gap-1">' +
+                        '<span class="fw-bold small" id="miniSub-' + item.id + '">$' + item.subtotal.toFixed(2) + '</span>' +
+                        '<button class="btn btn-link text-danger p-0 mc-remove" data-item-id="' + item.id + '" style="font-size:.85rem;"><i class="bi bi-trash3"></i></button>' +
+                        '</div></div>';
+                }).join('');
+
+                document.getElementById('miniCartTotal').textContent = '$' + data.total.toFixed(2);
+                itemsEl.classList.remove('d-none');
+                footer.classList.remove('d-none');
+
+                // Quantity buttons
+                itemsEl.querySelectorAll('.mc-qty').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        const itemId = this.dataset.itemId;
+                        const numEl  = itemsEl.querySelector('.mc-qty-num[data-item-id="' + itemId + '"]');
+                        let qty = parseInt(numEl.textContent) || 1;
+                        if (this.dataset.action === 'plus') qty++;
+                        else if (qty > 1) qty--;
+                        numEl.textContent = qty;
+                        fetch('/cart/actualizar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ item_id: parseInt(itemId), quantity: qty })
+                        })
+                        .then(function (r) { return r.json(); })
+                        .then(function (res) {
+                            if (res.success) {
+                                const subEl = document.getElementById('miniSub-' + itemId);
+                                if (subEl) subEl.textContent = '$' + parseFloat(res.subtotal).toFixed(2);
+                                document.getElementById('miniCartTotal').textContent = '$' + parseFloat(res.total).toFixed(2);
+                                updateCartBadge(res.cart_count);
+                            }
+                        });
+                    });
+                });
+
+                // Remove buttons
+                itemsEl.querySelectorAll('.mc-remove').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        const itemId = this.dataset.itemId;
+                        fetch('/cart/eliminar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ item_id: parseInt(itemId) })
+                        })
+                        .then(function (r) { return r.json(); })
+                        .then(function (res) {
+                            if (res.success) {
+                                const row = document.getElementById('miniRow-' + itemId);
+                                if (row) row.remove();
+                                document.getElementById('miniCartTotal').textContent = '$' + parseFloat(res.total).toFixed(2);
+                                updateCartBadge(res.cart_count);
+                                if (res.cart_count === 0) {
+                                    itemsEl.classList.add('d-none');
+                                    footer.classList.add('d-none');
+                                    empty.classList.remove('d-none');
+                                }
+                            }
+                        });
+                    });
+                });
+            })
+            .catch(function () {
+                loading.classList.add('d-none');
+                empty.classList.remove('d-none');
+            });
+    }
+
+    // Recargar mini-cart después de agregar producto
+    const _origAddToCart = window.addToCart;
+    window.addToCart = function (productId, quantity) {
+        _origAddToCart(productId, quantity);
+        if (miniCartEl && miniCartEl.classList.contains('show')) {
+            setTimeout(loadMiniCart, 400);
+        }
+    };
 });

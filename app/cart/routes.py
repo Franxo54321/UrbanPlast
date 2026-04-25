@@ -114,6 +114,28 @@ def cart_count():
     return jsonify({'count': _cart_count(current_user.id)})
 
 
+@cart_bp.route('/items')
+@login_required
+def cart_items():
+    items = CartItem.query.filter_by(user_id=current_user.id).all()
+    total = float(sum(item.subtotal for item in items))
+    return jsonify({
+        'items': [{
+            'id': i.id,
+            'product_id': i.product_id,
+            'name': i.product.name,
+            'price': float(i.product.price),
+            'quantity': i.quantity,
+            'subtotal': float(i.subtotal),
+            'image': i.product.image_url,
+            'slug': i.product.slug,
+            'stock': i.product.stock
+        } for i in items],
+        'total': total,
+        'count': sum(i.quantity for i in items)
+    })
+
+
 @cart_bp.route('/aplicar-cupon', methods=['POST'])
 @login_required
 def apply_coupon():

@@ -33,16 +33,25 @@
                         </td>
                         <td class="fw-bold">${{ "%.2f"|format(order.total) }}</td>
                         <td>
-                            {% if order.status == 'pendiente' %}
-                            <span class="badge bg-warning text-dark">Pendiente</span>
-                            {% elif order.status == 'pagado' %}
-                            <span class="badge bg-success">Pagado</span>
-                            {% elif order.status == 'enviado' %}
-                            <span class="badge bg-info">Enviado</span>
-                            {% elif order.status == 'completado' %}
-                            <span class="badge" style="background-color: var(--up-green);">Completado</span>
+                            {% if order.status == 'cancelado' %}
+                            <span class="badge bg-danger">Cancelado</span>
                             {% else %}
-                            <span class="badge bg-secondary">{{ order.status|capitalize }}</span>
+                            {% if order.status == 'pagado' %}{% set step = 1 %}
+                            {% elif order.status == 'enviado' %}{% set step = 2 %}
+                            {% elif order.status == 'completado' %}{% set step = 3 %}
+                            {% else %}{% set step = 0 %}{% endif %}
+                            <div class="d-flex align-items-center mb-1" style="gap:3px;min-width:84px;">
+                                {% for i in range(4) %}
+                                <div class="rounded-circle flex-shrink-0" title="{{ ['Recibido','En preparación','Enviado','Entregado'][i] }}"
+                                     style="width:10px;height:10px;background:{% if i <= step %}var(--up-green){% else %}#dee2e6{% endif %};"></div>
+                                {% if not loop.last %}
+                                <div style="height:2px;flex:1;background:{% if i < step %}var(--up-green){% else %}#dee2e6{% endif %};"></div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted" style="font-size:.7rem;white-space:nowrap;">
+                                {% if step == 0 %}Recibido{% elif step == 1 %}En preparación{% elif step == 2 %}Enviado{% else %}Entregado{% endif %}
+                            </small>
                             {% endif %}
                         </td>
                         <td>

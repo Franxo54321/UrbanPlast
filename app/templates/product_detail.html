@@ -45,7 +45,7 @@
                     {% if images|length > 1 %}
                     <button class="gallery-arrow gallery-prev" onclick="changeImage(-1)"><i class="bi bi-chevron-left"></i></button>
                     {% endif %}
-                    <img src="{{ images[0] }}" alt="{{ product.name }}" id="mainImage">
+                    <img src="{{ images[0] }}" alt="{{ product.name }}" id="mainImage" style="cursor:zoom-in;" onclick="openLightbox(currentIdx)">
                     {% if images|length > 1 %}
                     <button class="gallery-arrow gallery-next" onclick="changeImage(1)"><i class="bi bi-chevron-right"></i></button>
                     {% endif %}
@@ -54,7 +54,7 @@
                 <div class="gallery-counter"><span id="imgCounter">1</span> / {{ images|length }}</div>
                 <div class="gallery-thumbs">
                     {% for img_url in images %}
-                    <img src="{{ img_url }}" class="gallery-thumb {% if loop.first %}active{% endif %}" onclick="goToImage({{ loop.index0 }})" alt="Imagen {{ loop.index }}">
+                    <img src="{{ img_url }}" class="gallery-thumb {% if loop.first %}active{% endif %}" onclick="goToImage({{ loop.index0 }})" loading="lazy" alt="Imagen {{ loop.index }}">
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -95,7 +95,9 @@
 
             <h3 class="text-up-green fw-bold">${{ "%.2f"|format(product.price) }}</h3>
 
-            {% if product.stock > 0 %}
+            {% if product.stock > 0 and product.stock < 5 %}
+                <p class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle-fill"></i> ¡Últimas {{ product.stock }} unidades!</p>
+            {% elif product.stock > 0 %}
                 <p class="text-success"><i class="bi bi-check-circle-fill"></i> En stock ({{ product.stock }} disponibles)</p>
             {% else %}
                 <p class="text-danger"><i class="bi bi-x-circle-fill"></i> Sin stock</p>
@@ -212,7 +214,7 @@
         <div class="col-md-3 col-6">
             <div class="card h-100 shadow-sm product-card">
                 <a href="{{ url_for('main.product_detail', slug=p.slug) }}">
-                    <img src="{{ p.image_url }}" class="card-img-top" alt="{{ p.name }}" style="object-fit: cover;">
+                    <img src="{{ p.image_url }}" class="card-img-top" alt="{{ p.name }}" loading="lazy" style="object-fit: cover;">
                 </a>
                 <div class="card-body d-flex flex-column">
                     <h6><a href="{{ url_for('main.product_detail', slug=p.slug) }}" class="text-decoration-none text-dark">{{ p.name }}</a></h6>
@@ -223,6 +225,30 @@
         {% endfor %}
     </div>
     {% endif %}
+
+    <!-- Productos vistos recientemente (localStorage) -->
+    <div id="recentlyViewedSection" class="d-none">
+        <hr class="my-5">
+        <h4 class="mb-4"><i class="bi bi-clock-history"></i> Vistos recientemente</h4>
+        <div class="row g-3" id="recentlyViewedGrid"></div>
+    </div>
+</div>
+
+<!-- Lightbox Modal -->
+<div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0" style="background:#111;">
+            <div class="modal-header border-0 py-2 px-3">
+                <span id="lightboxCounter" class="text-white small"></span>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0 text-center position-relative d-flex align-items-center justify-content-center" style="min-height:60vh;">
+                <button class="gallery-arrow gallery-prev" id="lbPrev" onclick="lightboxNav(-1)" style="position:absolute;left:12px;z-index:10;display:none;"><i class="bi bi-chevron-left"></i></button>
+                <img src="" id="lightboxImg" class="img-fluid" style="max-height:82vh;object-fit:contain;padding:8px;" alt="">
+                <button class="gallery-arrow gallery-next" id="lbNext" onclick="lightboxNav(1)" style="position:absolute;right:12px;z-index:10;display:none;"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -293,5 +319,59 @@ function updateGallery() {
         t.classList.toggle('active', i === currentIdx);
     });
 }
+
+// --- Lightbox ---
+function openLightbox(idx) {
+    currentIdx = idx;
+    const img = document.getElementById('lightboxImg');
+    if (img) img.src = galleryImages[idx];
+    const counter = document.getElementById('lightboxCounter');
+    if (counter) counter.textContent = galleryImages.length > 1 ? (idx + 1) + ' / ' + galleryImages.length : '';
+    const lbPrev = document.getElementById('lbPrev');
+    const lbNext = document.getElementById('lbNext');
+    if (lbPrev) lbPrev.style.display = galleryImages.length > 1 ? 'flex' : 'none';
+    if (lbNext) lbNext.style.display = galleryImages.length > 1 ? 'flex' : 'none';
+    new bootstrap.Modal(document.getElementById('lightboxModal')).show();
+}
+function lightboxNav(dir) {
+    currentIdx = (currentIdx + dir + galleryImages.length) % galleryImages.length;
+    const img = document.getElementById('lightboxImg');
+    if (img) img.src = galleryImages[currentIdx];
+    const counter = document.getElementById('lightboxCounter');
+    if (counter) counter.textContent = (currentIdx + 1) + ' / ' + galleryImages.length;
+    updateGallery();
+}
+
+// --- Productos vistos recientemente ---
+(function () {
+    const KEY = 'up_recently_viewed';
+    const MAX = 5;
+    const current = {
+        id: {{ product.id }},
+        name: {{ product.name | tojson }},
+        slug: {{ product.slug | tojson }},
+        price: {{ product.price }},
+        image: {{ product.image_url | tojson }},
+        category: {{ product.category.name | tojson }}
+    };
+    let viewed = [];
+    try { viewed = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) {}
+    viewed = viewed.filter(function (p) { return p.id !== current.id; });
+    viewed.unshift(current);
+    if (viewed.length > MAX + 1) viewed = viewed.slice(0, MAX + 1);
+    try { localStorage.setItem(KEY, JSON.stringify(viewed)); } catch (e) {}
+
+    const others = viewed.filter(function (p) { return p.id !== current.id; }).slice(0, MAX);
+    if (others.length > 0) {
+        const section = document.getElementById('recentlyViewedSection');
+        const grid = document.getElementById('recentlyViewedGrid');
+        if (section && grid) {
+            grid.innerHTML = others.map(function (p) {
+                return '<div class="col-6 col-md-3 col-lg-2"><a href="/producto/' + p.slug + '" class="text-decoration-none"><div class="card h-100 shadow-sm"><img src="' + p.image + '" class="card-img-top" alt="' + p.name + '" loading="lazy" style="height:110px;object-fit:cover;"><div class="card-body p-2"><small class="fw-semibold text-dark d-block text-truncate">' + p.name + '</small><small class="fw-bold" style="color:var(--up-green);">$' + parseFloat(p.price).toFixed(2) + '</small></div></div></a></div>';
+            }).join('');
+            section.classList.remove('d-none');
+        }
+    }
+})();
 </script>
 {% endblock %}
