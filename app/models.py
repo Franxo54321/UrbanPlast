@@ -270,7 +270,28 @@ class OrderItem(db.Model):
         return self.price * self.quantity
 
 
-class OrderStatusHistory(db.Model):
+class SiteSetting(db.Model):
+    __tablename__ = 'site_settings'
+
+    key   = db.Column(db.String(100), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+
+    @staticmethod
+    def get(key, default=None):
+        row = SiteSetting.query.get(key)
+        return row.value if row else default
+
+    @staticmethod
+    def set(key, value):
+        row = SiteSetting.query.get(key)
+        if row:
+            row.value = value
+        else:
+            db.session.add(SiteSetting(key=key, value=value))
+        db.session.commit()
+
+    def __repr__(self):
+        return f'<SiteSetting {self.key}>'
     __tablename__ = 'order_status_history'
 
     id = db.Column(db.Integer, primary_key=True)

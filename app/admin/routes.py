@@ -8,7 +8,8 @@ from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import (Product, Category, User, CartItem, Order, OrderItem,
-                        Material, Color, ProductImage, Coupon, OrderStatusHistory)
+                        Material, Color, ProductImage, Coupon, OrderStatusHistory,
+                        SiteSetting)
 from app.admin.forms import ProductForm, ColorForm, MaterialForm, CategoryForm, CouponForm
 
 admin_bp = Blueprint('admin', __name__, template_folder='templates')
@@ -696,3 +697,40 @@ def test_email():
                            active_page='test_email',
                            config_info=config_info,
                            result=result)
+
+
+@admin_bp.route('/hero-image', methods=['GET', 'POST'])
+@admin_required
+def hero_image():
+    current_url = SiteSetting.get('hero_image_url', '')
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'upload')
+
+        if action == 'remove':
+            SiteSetting.set('hero_image_url', '')
+            flash('Imagen del hero eliminada.', 'success')
+            return redirect(url_for('admin.hero_image'))
+
+        if action == 'url':
+            url = request.form.get('image_url', '').strip()
+            if url:
+                SiteSetting.set('hero_image_url', url)
+                flash('URL de imagen guardada correctamente.', 'success')
+            else:
+                flash('La URL no puede estar vacía.', 'danger')
+            return redirect(url_for('admin.hero_image'))
+
+        # action == 'upload'
+        file = request.files.get('image_file')
+        filename = _save_image(file)
+        if filename:
+            SiteSetting.set('hero_image_url', f'/static/uploads/{filename}')
+            flash('Imagen subida y guardada correctamente.', 'success')
+        else:
+            flash('Archivo inválido. Usá JPG, PNG o WebP.', 'danger')
+        return redirect(url_for('admin.hero_image'))
+
+    return render_template('admin/hero_image.html',
+                           active_page='hero_image',
+                           current_url=current_url)

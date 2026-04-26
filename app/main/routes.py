@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from app import db
-from app.models import Product, Category, Material, Review, Wishlist, OrderItem, Order
+from app.models import Product, Category, Material, Review, Wishlist, OrderItem, Order, SiteSetting
 import requests
 
 main_bp = Blueprint('main', __name__, template_folder='templates')
@@ -14,8 +14,10 @@ def index():
     latest = Product.query.filter_by(active=True).order_by(Product.created_at.desc()).limit(8).all()
     categories = Category.query.all()
     materials = Material.query.order_by(Material.name).all()
+    hero_image_url = SiteSetting.get('hero_image_url', '')
     return render_template('index.html', featured=featured, latest=latest,
-                           categories=categories, materials=materials)
+                           categories=categories, materials=materials,
+                           hero_image_url=hero_image_url)
 
 
 @main_bp.route('/nosotros')

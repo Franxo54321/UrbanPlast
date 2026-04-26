@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Imagen Hero{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            {% include 'admin/_sidebar.html' %}
+        </div>
+        <div class="col-md-9">
+            <h4 class="mb-1" style="font-family:'Playfair Display',serif;">Imagen del Hero</h4>
+            <p class="mb-4" style="color:var(--up-muted);font-size:14px;">
+                Esta imagen aparece en el panel derecho de la sección hero en la página de inicio.
+            </p>
+
+            <!-- Vista previa -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-image me-1"></i> Vista previa actual
+                </div>
+                <div class="card-body text-center" style="min-height:180px;display:flex;align-items:center;justify-content:center;">
+                    {% if current_url %}
+                        <img src="{{ current_url }}" alt="Hero image"
+                             style="max-height:260px;max-width:100%;object-fit:contain;border-radius:8px;">
+                    {% else %}
+                        <div style="color:var(--up-muted);font-size:13px;">
+                            <i class="bi bi-image fs-2 d-block mb-2"></i>
+                            No hay imagen configurada — se muestra el placeholder.
+                        </div>
+                    {% endif %}
+                </div>
+                {% if current_url %}
+                <div class="card-footer text-end">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="remove">
+                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                onclick="return confirm('¿Eliminar la imagen del hero?')">
+                            <i class="bi bi-trash me-1"></i>Eliminar imagen
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="row g-4">
+                <!-- Subir archivo -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <i class="bi bi-upload me-1"></i> Subir imagen
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="upload">
+                                <div class="mb-3">
+                                    <label class="form-label">Archivo (JPG, PNG, WebP)</label>
+                                    <input type="file" name="image_file" accept="image/*"
+                                           class="form-control" required>
+                                    <div class="form-text">Recomendado: 520×640 px o más, proporción 4:5.</div>
+                                </div>
+                                <button type="submit" class="btn btn-up-green w-100">
+                                    <i class="bi bi-cloud-upload me-1"></i>Subir y guardar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- URL externa -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <i class="bi bi-link-45deg me-1"></i> Usar URL externa
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="url">
+                                <div class="mb-3">
+                                    <label class="form-label">URL de la imagen</label>
+                                    <input type="url" name="image_url" class="form-control"
+                                           placeholder="https://ejemplo.com/foto.jpg"
+                                           value="{{ current_url if current_url and current_url.startswith('http') else '' }}">
+                                    <div class="form-text">Pegá un enlace directo a la imagen.</div>
+                                </div>
+                                <button type="submit" class="btn btn-up-green w-100">
+                                    <i class="bi bi-save me-1"></i>Guardar URL
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

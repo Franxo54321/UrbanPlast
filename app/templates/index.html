@@ -37,9 +37,13 @@
             </div>
         </div>
         <div class="hero-visual">
-            <div class="hero-img-placeholder">
-                <span>Imagen<br>producto</span>
-            </div>
+            {% if hero_image_url %}
+                <img src="{{ hero_image_url }}" alt="UrbanPlast" class="hero-product-img">
+            {% else %}
+                <div class="hero-img-placeholder">
+                    <span>Imagen<br>producto</span>
+                </div>
+            {% endif %}
         </div>
     </div>
 </section>
