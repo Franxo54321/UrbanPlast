@@ -89,7 +89,7 @@
                     <h3 class="product-card-name">
                         <a href="{{ url_for('main.product_detail', slug=product.slug) }}">{{ product.name }}</a>
                     </h3>
-                    <p class="product-card-desc">{{ product.description[:80] }}{% if product.description|length > 80 %}…{% endif %}</p>
+                    <p class="product-card-desc">{{ (product.description or '')[:80] }}{% if (product.description or '')|length > 80 %}…{% endif %}</p>
                     <div class="product-card-footer">
                         <span class="product-card-price">${{ "%.0f"|format(product.price) }}</span>
                         <button class="btn btn-product-detail add-to-cart-btn" data-product-id="{{ product.id }}">
@@ -108,7 +108,7 @@
 {% endif %}
 
 <!-- Últimos productos -->
-{% if latest and latest != featured %}
+{% if latest %}
 <section class="section-products section-products--alt">
     <div class="section-inner">
         <div class="section-eyebrow">Novedades</div>
@@ -128,7 +128,7 @@
                     <h3 class="product-card-name">
                         <a href="{{ url_for('main.product_detail', slug=product.slug) }}">{{ product.name }}</a>
                     </h3>
-                    <p class="product-card-desc">{{ product.description[:80] }}{% if product.description|length > 80 %}…{% endif %}</p>
+                    <p class="product-card-desc">{{ (product.description or '')[:80] }}{% if (product.description or '')|length > 80 %}…{% endif %}</p>
                     <div class="product-card-footer">
                         <span class="product-card-price">${{ "%.0f"|format(product.price) }}</span>
                         <button class="btn btn-product-detail add-to-cart-btn" data-product-id="{{ product.id }}">
