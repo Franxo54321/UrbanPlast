@@ -1,163 +1,195 @@
 {% extends "base.html" %}
 {% block title %}Inicio{% endblock %}
 
-{% block extra_css %}
-<style>
-    .hero-section {
-        background: linear-gradient(135deg, var(--up-dark) 0%, var(--up-green) 50%, var(--up-wood) 100%);
-        padding: 80px 0;
-        color: white;
-    }
-    .hero-section h1 { font-size: 3rem; font-weight: 700; }
-    .hero-section p { font-size: 1.25rem; opacity: .85; }
-    .carousel-product-card {
-        transition: transform .3s;
-    }
-    .carousel-product-card:hover {
-        transform: translateY(-5px);
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <!-- Hero -->
-<section class="hero-section text-center">
-    <div class="container">
-        <h1><i class="bi bi-tree-fill"></i> UrbanPlast</h1>
-        <p class="lead mb-4">Muebles de exterior en plástico y madera para disfrutar al aire libre</p>
-        <a href="{{ url_for('main.products') }}" class="btn btn-light btn-lg px-5">Ver Productos</a>
-    </div>
-</section>
-
-<!-- Categorías rápidas -->
-<section class="py-5 bg-light">
-    <div class="container">
-        <h3 class="text-center mb-4">Explorá por categoría</h3>
-        <div class="row g-3 justify-content-center">
-            {% for cat in categories %}
-            <div class="col-6 col-md-2">
-                <a href="{{ url_for('main.products', categoria=cat.slug) }}" class="text-decoration-none">
-                    <div class="card text-center border-0 shadow-sm h-100 category-card">
-                        <div class="card-body py-4">
-                            <i class="bi bi-grid fs-2 text-up-green"></i>
-                            <p class="mb-0 mt-2 fw-semibold text-dark">{{ cat.name }}</p>
-                        </div>
-                    </div>
-                </a>
+<section class="hero-section">
+    <div class="hero-bg-grid"></div>
+    <div class="hero-inner">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="hero-badge-dot"></span>
+                Colección 2026
             </div>
-            {% endfor %}
-            {% for mat in materials %}
-            <div class="col-6 col-md-2">
-                <a href="{{ url_for('main.products', material=mat.id) }}" class="text-decoration-none">
-                    <div class="card text-center border-0 shadow-sm h-100 category-card">
-                        <div class="card-body py-4">
-                            <i class="bi bi-layers fs-2 text-up-wood"></i>
-                            <p class="mb-0 mt-2 fw-semibold text-dark">{{ mat.name }}</p>
-                        </div>
-                    </div>
-                </a>
+            <h1 class="hero-title">
+                Diseño que <em>respeta</em><br>el mundo natural
+            </h1>
+            <p class="hero-subtitle">
+                Muebles de exterior en madera maciza y plástico reciclado. Resistentes, sustentables y hechos en Argentina.
+            </p>
+            <div class="hero-ctas">
+                <a href="{{ url_for('main.products') }}" class="btn btn-hero-primary">Ver Catálogo</a>
+                <a href="{{ url_for('main.about') }}" class="btn btn-hero-secondary">Conocenos</a>
             </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-<!-- Productos Destacados - Carrusel -->
-{% if featured %}
-<section class="py-5">
-    <div class="container">
-        <h3 class="text-center mb-4"><i class="bi bi-star-fill text-warning"></i> Productos Destacados</h3>
-        <div id="carouselFeatured" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner">
-                {% for chunk_start in range(0, featured|length, 4) %}
-                <div class="carousel-item {% if loop.first %}active{% endif %}">
-                    <div class="row g-4 px-2">
-                        {% for product in featured[chunk_start:chunk_start+4] %}
-                        <div class="col-md-3 col-6">
-                            <div class="card h-100 shadow-sm carousel-product-card">
-                                <a href="{{ url_for('main.product_detail', slug=product.slug) }}">
-                                    <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" loading="lazy" style="object-fit: cover;">
-                                </a>
-                                <div class="card-body d-flex flex-column">
-                                    <span class="badge bg-secondary mb-2 align-self-start">{{ product.category.name }}</span>
-                                    <h6 class="card-title">
-                                        <a href="{{ url_for('main.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">{{ product.name }}</a>
-                                    </h6>
-                                    <p class="text-up-green fw-bold mt-auto fs-5">${{ "%.2f"|format(product.price) }}</p>
-                                    <button class="btn btn-up-green btn-sm add-to-cart-btn" data-product-id="{{ product.id }}">
-                                        <i class="bi bi-cart-plus"></i> Agregar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-num">+500</span>
+                    <span class="hero-stat-label">Productos vendidos</span>
                 </div>
-                {% endfor %}
+                <div class="hero-stat">
+                    <span class="hero-stat-num">100%</span>
+                    <span class="hero-stat-label">Plástico reciclado</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-num">10 años</span>
+                    <span class="hero-stat-label">En el mercado</span>
+                </div>
             </div>
-            {% if featured|length > 4 %}
-            <button class="carousel-control-prev" type="button" data-bs-target="#carouselFeatured" data-bs-slide="prev">
-                <span class="bg-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
-                    <span class="carousel-control-prev-icon"></span>
-                </span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#carouselFeatured" data-bs-slide="next">
-                <span class="bg-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
-                    <span class="carousel-control-next-icon"></span>
-                </span>
-            </button>
-            {% endif %}
+        </div>
+        <div class="hero-visual">
+            <div class="hero-img-placeholder">
+                <span>Imagen<br>producto</span>
+            </div>
         </div>
     </div>
 </section>
-{% endif %}
 
-<!-- Últimos productos -->
-{% if latest %}
-<section class="py-5 bg-light">
-    <div class="container">
-        <h3 class="text-center mb-4"><i class="bi bi-clock-history"></i> Últimos Productos</h3>
-        <div class="row g-4">
-            {% for product in latest %}
-            <div class="col-lg-3 col-md-4 col-6">
-                <div class="card h-100 shadow-sm product-card">
-                    <a href="{{ url_for('main.product_detail', slug=product.slug) }}">
-                        <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" loading="lazy" style="object-fit: cover;">
-                    </a>
-                    <div class="card-body d-flex flex-column">
-                        <span class="badge bg-secondary mb-2 align-self-start">{{ product.category.name }}</span>
-                        <h6 class="card-title">
-                            <a href="{{ url_for('main.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">{{ product.name }}</a>
-                        </h6>
-                        <span class="badge {% if product.material == 'madera' %}bg-success{% else %}bg-info{% endif %} mb-2 align-self-start">
-                            {{ product.material|capitalize }}
-                        </span>
-                        <p class="text-up-green fw-bold mt-auto fs-5">${{ "%.2f"|format(product.price) }}</p>
-                        <button class="btn btn-up-green btn-sm add-to-cart-btn" data-product-id="{{ product.id }}">
-                            <i class="bi bi-cart-plus"></i> Agregar al carrito
+<!-- Materiales -->
+<section class="section-materials">
+    <div class="section-inner">
+        <div class="section-eyebrow">Nuestros Materiales</div>
+        <h2 class="section-title">Lo mejor de la <em>naturaleza</em><br>y el <span class="text-wood-light">reciclado</span></h2>
+        <div class="materials-grid">
+            <a href="{{ url_for('main.products', material='madera') }}" class="material-card material-card--wood">
+                <div class="material-card-deco"></div>
+                <div class="material-tag">Madera</div>
+                <h3 class="material-card-title">Madera<br>Maciza</h3>
+                <p class="material-card-body">Algarrobo y pino certificado con tratamiento natural al agua. Durabilidad y calidez para espacios que duran décadas.</p>
+                <span class="material-card-link">Explorar muebles de madera →</span>
+            </a>
+            <a href="{{ url_for('main.products', material='plastico') }}" class="material-card material-card--plastic">
+                <div class="material-card-deco"></div>
+                <div class="material-tag">Plástico</div>
+                <h3 class="material-card-title">Plástico<br>Reciclado</h3>
+                <p class="material-card-body">100% plástico post-consumo. UV resistente, liviano y apilable. Ideal para exteriores sin mantenimiento.</p>
+                <span class="material-card-link">Explorar muebles de plástico →</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Productos Destacados -->
+{% if featured %}
+<section class="section-products">
+    <div class="section-inner">
+        <div class="section-eyebrow">Selección</div>
+        <h2 class="section-title">Productos <em>Destacados</em></h2>
+        <div class="products-grid">
+            {% for product in featured %}
+            <div class="product-card" data-product-id="{{ product.id }}">
+                <a href="{{ url_for('main.product_detail', slug=product.slug) }}" class="product-card-img-wrap">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy" class="product-card-img">
+                    <div class="product-card-mat-dot {% if product.material_name == 'madera' %}dot-wood{% else %}dot-plastic{% endif %}"></div>
+                </a>
+                <div class="product-card-body">
+                    <div class="product-card-meta">
+                        <span class="product-card-category">{{ product.category.name }}</span>
+                        <span class="product-card-material">{{ product.material_name|capitalize }}</span>
+                    </div>
+                    <h3 class="product-card-name">
+                        <a href="{{ url_for('main.product_detail', slug=product.slug) }}">{{ product.name }}</a>
+                    </h3>
+                    <p class="product-card-desc">{{ product.description[:80] }}{% if product.description|length > 80 %}…{% endif %}</p>
+                    <div class="product-card-footer">
+                        <span class="product-card-price">${{ "%.0f"|format(product.price) }}</span>
+                        <button class="btn btn-product-detail add-to-cart-btn" data-product-id="{{ product.id }}">
+                            <i class="bi bi-cart-plus me-1"></i>Agregar
                         </button>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
-        <div class="text-center mt-4">
-            <a href="{{ url_for('main.products') }}" class="btn btn-up-green btn-lg">Ver todos los productos →</a>
+        <div class="section-cta">
+            <a href="{{ url_for('main.products') }}" class="btn btn-up-green">Ver todos los productos →</a>
         </div>
     </div>
 </section>
 {% endif %}
 
-<!-- Si no hay productos -->
+<!-- Últimos productos -->
+{% if latest and latest != featured %}
+<section class="section-products section-products--alt">
+    <div class="section-inner">
+        <div class="section-eyebrow">Novedades</div>
+        <h2 class="section-title">Últimos <em>Productos</em></h2>
+        <div class="products-grid">
+            {% for product in latest %}
+            <div class="product-card" data-product-id="{{ product.id }}">
+                <a href="{{ url_for('main.product_detail', slug=product.slug) }}" class="product-card-img-wrap">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy" class="product-card-img">
+                    <div class="product-card-mat-dot {% if product.material_name == 'madera' %}dot-wood{% else %}dot-plastic{% endif %}"></div>
+                </a>
+                <div class="product-card-body">
+                    <div class="product-card-meta">
+                        <span class="product-card-category">{{ product.category.name }}</span>
+                        <span class="product-card-material">{{ product.material_name|capitalize }}</span>
+                    </div>
+                    <h3 class="product-card-name">
+                        <a href="{{ url_for('main.product_detail', slug=product.slug) }}">{{ product.name }}</a>
+                    </h3>
+                    <p class="product-card-desc">{{ product.description[:80] }}{% if product.description|length > 80 %}…{% endif %}</p>
+                    <div class="product-card-footer">
+                        <span class="product-card-price">${{ "%.0f"|format(product.price) }}</span>
+                        <button class="btn btn-product-detail add-to-cart-btn" data-product-id="{{ product.id }}">
+                            <i class="bi bi-cart-plus me-1"></i>Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="section-cta">
+            <a href="{{ url_for('main.products') }}" class="btn btn-up-green">Ver catálogo completo →</a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Sin productos -->
 {% if not featured and not latest %}
-<section class="py-5 text-center">
-    <div class="container">
-        <i class="bi bi-box-seam fs-1 text-muted"></i>
-        <h4 class="mt-3 text-muted">Todavía no hay productos cargados</h4>
+<section class="section-products" style="text-align:center;padding:120px 80px;">
+    <div class="section-inner">
+        <i class="bi bi-box-seam" style="font-size:3rem;color:var(--up-muted);"></i>
+        <h4 class="mt-3" style="color:var(--up-muted);">Todavía no hay productos cargados</h4>
         {% if current_user.is_authenticated and current_user.is_admin %}
         <a href="{{ url_for('admin.product_create') }}" class="btn btn-up-green mt-3">Cargar primer producto</a>
         {% endif %}
     </div>
 </section>
 {% endif %}
+
+<!-- Valores -->
+<section class="section-nosotros">
+    <div class="section-inner">
+        <div class="nosotros-grid">
+            <div class="nosotros-text-col">
+                <div class="section-eyebrow">Nosotros</div>
+                <h2 class="section-title">Diseño argentino<br>con <em>propósito</em></h2>
+                <p class="nosotros-body">
+                    Somos una empresa familiar con más de 10 años fabricando muebles de exterior. Combinamos tradición artesanal con materiales sustentables para crear productos que duran y cuidan el ambiente.
+                </p>
+                <a href="{{ url_for('main.contact') }}" class="btn btn-wood mt-2">Contactarnos</a>
+            </div>
+            <div class="valores-grid">
+                <div class="valor-card">
+                    <div class="valor-icon">○</div>
+                    <h4 class="valor-title">Sustentabilidad</h4>
+                    <p class="valor-desc">Usamos plástico post-consumo y madera de bosques certificados para minimizar nuestro impacto.</p>
+                </div>
+                <div class="valor-card">
+                    <div class="valor-icon">△</div>
+                    <h4 class="valor-title">Durabilidad</h4>
+                    <p class="valor-desc">Nuestros productos están diseñados para resistir el clima argentino durante años sin mantenimiento.</p>
+                </div>
+                <div class="valor-card">
+                    <div class="valor-icon">□</div>
+                    <h4 class="valor-title">Diseño argentino</h4>
+                    <p class="valor-desc">Cada pieza es diseñada y fabricada en Argentina, combinando estética moderna y funcionalidad.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {% endblock %}
