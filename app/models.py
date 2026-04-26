@@ -292,6 +292,9 @@ class SiteSetting(db.Model):
 
     def __repr__(self):
         return f'<SiteSetting {self.key}>'
+
+
+class OrderStatusHistory(db.Model):
     __tablename__ = 'order_status_history'
 
     id = db.Column(db.Integer, primary_key=True)
