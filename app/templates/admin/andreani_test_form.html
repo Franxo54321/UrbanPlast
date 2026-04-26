@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Test Andreani{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0"><i class="bi bi-truck"></i> Test Integracion Andreani</h2>
+        <a class="btn btn-outline-secondary" href="{{ url_for('admin.dashboard') }}">
+            <i class="bi bi-arrow-left"></i> Volver al admin
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        Esta pantalla permite probar manualmente la creacion de ordenes de envio contra Andreani Sandbox.
+    </div>
+
+    <form method="POST" class="card shadow-sm">
+        <div class="card-body">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <h5 class="fw-bold mb-3">Conexion</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-8">
+                    <label class="form-label">API URL</label>
+                    <input class="form-control" name="api_url" value="{{ form_data.get('api_url', '') }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">API Key (opcional)</label>
+                    <input class="form-control" name="api_key" placeholder="Si vacio, usa ANDREANI_API_KEY de entorno">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Tracking URL template</label>
+                    <input class="form-control" name="tracking_url_template" value="{{ form_data.get('tracking_url_template', '') }}">
+                    <small class="text-muted">Usa {numero} para interpolar el numero de envio.</small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Numero de envio a consultar</label>
+                    <input class="form-control" name="tracking_number" value="{{ form_data.get('tracking_number', '') }}" placeholder="Ej: 1060861658">
+                </div>
+            </div>
+
+            <h5 class="fw-bold mb-3">Datos de Orden</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label">Contrato</label>
+                    <input class="form-control" name="contrato" value="{{ form_data.get('contrato', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tipo Servicio</label>
+                    <input class="form-control" name="tipo_servicio" value="{{ form_data.get('tipo_servicio', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sucursal Cliente ID</label>
+                    <input type="number" class="form-control" name="sucursal_cliente_id" value="{{ form_data.get('sucursal_cliente_id', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">ID Pedido</label>
+                    <input class="form-control" name="id_pedido" value="{{ form_data.get('id_pedido', '') }}">
+                </div>
+            </div>
+
+            <h5 class="fw-bold mb-3">Origen</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-2"><input class="form-control" name="origen_cp" placeholder="CP" value="{{ form_data.get('origen_cp', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="origen_calle" placeholder="Calle" value="{{ form_data.get('origen_calle', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="origen_numero" placeholder="Numero" value="{{ form_data.get('origen_numero', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="origen_piso" placeholder="Piso" value="{{ form_data.get('origen_piso', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="origen_depto" placeholder="Depto" value="{{ form_data.get('origen_depto', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="origen_localidad" placeholder="Localidad" value="{{ form_data.get('origen_localidad', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="origen_region" placeholder="Region" value="{{ form_data.get('origen_region', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="origen_pais" placeholder="Pais" value="{{ form_data.get('origen_pais', 'AR') }}"></div>
+                <div class="col-md-4"><input class="form-control" name="origen_ref" placeholder="Referencia" value="{{ form_data.get('origen_ref', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="origen_lat" placeholder="Latitud" value="{{ form_data.get('origen_lat', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="origen_lng" placeholder="Longitud" value="{{ form_data.get('origen_lng', '') }}"></div>
+            </div>
+
+            <h5 class="fw-bold mb-3">Destino</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-2"><input class="form-control" name="destino_cp" placeholder="CP" value="{{ form_data.get('destino_cp', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="destino_calle" placeholder="Calle" value="{{ form_data.get('destino_calle', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="destino_numero" placeholder="Numero" value="{{ form_data.get('destino_numero', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="destino_piso" placeholder="Piso" value="{{ form_data.get('destino_piso', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="destino_depto" placeholder="Depto" value="{{ form_data.get('destino_depto', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="destino_localidad" placeholder="Localidad" value="{{ form_data.get('destino_localidad', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="destino_region" placeholder="Region" value="{{ form_data.get('destino_region', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="destino_pais" placeholder="Pais" value="{{ form_data.get('destino_pais', 'AR') }}"></div>
+                <div class="col-md-4"><input class="form-control" name="destino_ref" placeholder="Referencia" value="{{ form_data.get('destino_ref', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="destino_lat" placeholder="Latitud" value="{{ form_data.get('destino_lat', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="destino_lng" placeholder="Longitud" value="{{ form_data.get('destino_lng', '') }}"></div>
+            </div>
+
+            <h5 class="fw-bold mb-3">Remitente y Destinatario</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4"><input class="form-control" name="remitente_nombre" placeholder="Remitente nombre" value="{{ form_data.get('remitente_nombre', '') }}"></div>
+                <div class="col-md-4"><input class="form-control" name="remitente_email" placeholder="Remitente email" value="{{ form_data.get('remitente_email', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="remitente_doc_tipo" placeholder="Doc tipo" value="{{ form_data.get('remitente_doc_tipo', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="remitente_doc_numero" placeholder="Doc numero" value="{{ form_data.get('remitente_doc_numero', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="remitente_telefono" placeholder="Remitente telefono" value="{{ form_data.get('remitente_telefono', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="dest_nombre" placeholder="Destinatario nombre" value="{{ form_data.get('dest_nombre', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="dest_email" placeholder="Destinatario email" value="{{ form_data.get('dest_email', '') }}"></div>
+                <div class="col-md-1"><input class="form-control" name="dest_doc_tipo" placeholder="Doc" value="{{ form_data.get('dest_doc_tipo', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="dest_doc_numero" placeholder="Nro doc" value="{{ form_data.get('dest_doc_numero', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="dest_telefono" placeholder="Destinatario telefono" value="{{ form_data.get('dest_telefono', '') }}"></div>
+            </div>
+
+            <h5 class="fw-bold mb-3">Bulto y Facturacion</h5>
+            <div class="row g-3 mb-2">
+                <div class="col-md-3"><input class="form-control" name="numero_remito" placeholder="Numero remito" value="{{ form_data.get('numero_remito', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="remito_complemento" placeholder="Remito complemento" value="{{ form_data.get('remito_complemento', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="centro_costos" placeholder="Centro de costos" value="{{ form_data.get('centro_costos', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="producto" placeholder="Producto a entregar" value="{{ form_data.get('producto', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="tipo_producto" placeholder="Tipo producto" value="{{ form_data.get('tipo_producto', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="categoria_facturacion" placeholder="Categoria" value="{{ form_data.get('categoria_facturacion', '') }}"></div>
+                <div class="col-md-2"><input type="number" class="form-control" name="pago_destino" placeholder="Pago destino" value="{{ form_data.get('pago_destino', '0') }}"></div>
+                <div class="col-md-2"><input type="number" step="0.01" class="form-control" name="valor_cobrar" placeholder="Valor a cobrar" value="{{ form_data.get('valor_cobrar', '0') }}"></div>
+                <div class="col-md-2"><input type="date" class="form-control" name="fecha_entrega" value="{{ form_data.get('fecha_entrega', '') }}"></div>
+                <div class="col-md-1"><input class="form-control" name="hora_desde" placeholder="Desde" value="{{ form_data.get('hora_desde', '09:00') }}"></div>
+                <div class="col-md-1"><input class="form-control" name="hora_hasta" placeholder="Hasta" value="{{ form_data.get('hora_hasta', '18:00') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="codigo_verificador" placeholder="Codigo verificador" value="{{ form_data.get('codigo_verificador', '') }}"></div>
+
+                <div class="col-md-1"><input type="number" step="0.01" class="form-control" name="kilos" placeholder="Kg" value="{{ form_data.get('kilos', '1') }}"></div>
+                <div class="col-md-1"><input type="number" class="form-control" name="largo" placeholder="Largo" value="{{ form_data.get('largo', '20') }}"></div>
+                <div class="col-md-1"><input type="number" class="form-control" name="alto" placeholder="Alto" value="{{ form_data.get('alto', '20') }}"></div>
+                <div class="col-md-1"><input type="number" class="form-control" name="ancho" placeholder="Ancho" value="{{ form_data.get('ancho', '20') }}"></div>
+                <div class="col-md-2"><input type="number" class="form-control" name="volumen" placeholder="Volumen" value="{{ form_data.get('volumen', '8000') }}"></div>
+                <div class="col-md-2"><input type="number" step="0.01" class="form-control" name="valor_sin_imp" placeholder="Valor s/imp" value="{{ form_data.get('valor_sin_imp', '0') }}"></div>
+                <div class="col-md-2"><input type="number" step="0.01" class="form-control" name="valor_con_imp" placeholder="Valor c/imp" value="{{ form_data.get('valor_con_imp', '0') }}"></div>
+                <div class="col-md-2"><input type="number" step="0.01" class="form-control" name="valor_declarado" placeholder="Valor declarado" value="{{ form_data.get('valor_declarado', '0') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="sku_ref" placeholder="SKU ref" value="{{ form_data.get('sku_ref', '') }}"></div>
+                <div class="col-md-3"><input class="form-control" name="descripcion_bulto" placeholder="Descripcion bulto" value="{{ form_data.get('descripcion_bulto', '') }}"></div>
+                <div class="col-md-2"><input class="form-control" name="ean" placeholder="EAN" value="{{ form_data.get('ean', '') }}"></div>
+                <div class="col-md-3 d-flex align-items-center">
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="pago_pendiente_mostrador" id="chkPendiente" {% if form_data.get('pago_pendiente_mostrador') %}checked{% endif %}>
+                        <label class="form-check-label" for="chkPendiente">Pago pendiente en mostrador</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-end gap-2 flex-wrap">
+            <button class="btn btn-outline-primary" type="submit" name="action" value="track_order">
+                <i class="bi bi-geo-alt"></i> Consultar tracking
+            </button>
+            <button class="btn btn-up-green" type="submit" name="action" value="create_order">
+                <i class="bi bi-play-fill"></i> Enviar prueba de orden
+            </button>
+        </div>
+    </form>
+
+    {% if result %}
+    <div class="row mt-4 g-3">
+        {% if result.request_url %}
+        <div class="col-12">
+            <div class="alert alert-secondary mb-0">
+                <strong>Endpoint llamado:</strong> {{ result.request_url }}
+            </div>
+        </div>
+        {% endif %}
+        {% if result.payload %}
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Payload enviado</div>
+                <div class="card-body">
+                    <pre class="small mb-0" style="white-space:pre-wrap;">{{ result.payload | tojson(indent=2) }}</pre>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+        {% else %}
+        <div class="col-12">
+        {% endif %}
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Respuesta Andreani{% if result.action == 'track_order' %} (tracking){% endif %}</span>
+                    <span class="badge {% if result.ok %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if result.status_code %}HTTP {{ result.status_code }}{% else %}ERROR{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <pre class="small mb-0" style="white-space:pre-wrap;">{{ result.response if result.response is string else (result.response | tojson(indent=2)) }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
