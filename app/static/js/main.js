@@ -34,19 +34,24 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.add-to-cart-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const productId = this.dataset.productId;
-            addToCart(productId, 1);
+            const card = this.closest('[data-product-id]');
+            const selected = card ? card.querySelector('.color-swatch-sel.selected') : null;
+            const colorId = selected ? selected.dataset.colorId : null;
+            addToCart(productId, 1, colorId);
         });
     });
 
     // --- Global addToCart function ---
-    window.addToCart = function (productId, quantity) {
+    window.addToCart = function (productId, quantity, colorId) {
+        const body = { product_id: parseInt(productId), quantity: quantity || 1 };
+        if (colorId) body.color_id = parseInt(colorId);
         fetch('/cart/agregar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({ product_id: parseInt(productId), quantity: quantity || 1 })
+            body: JSON.stringify(body)
         })
         .then(function (response) {
             if (response.status === 401) {
@@ -209,11 +214,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
                 itemsEl.innerHTML = data.items.map(function (item) {
+                    const colorBadge = item.color_name
+                        ? '<span class="mc-color-badge" style="background:' + (item.color_hex || '#888') + ';"></span><small class="text-muted" style="font-size:11px;">' + item.color_name + '</small>'
+                        : '';
                     return '<div class="d-flex gap-2 py-2 border-bottom align-items-center" id="miniRow-' + item.id + '">' +
                         '<a href="/producto/' + item.slug + '" data-bs-dismiss="offcanvas">' +
                         '<img src="' + item.image + '" style="width:56px;height:56px;object-fit:cover;border-radius:6px;" alt="' + item.name + '" loading="lazy"></a>' +
                         '<div class="flex-grow-1 overflow-hidden">' +
                         '<a href="/producto/' + item.slug + '" class="text-decoration-none text-dark small fw-semibold d-block text-truncate" data-bs-dismiss="offcanvas">' + item.name + '</a>' +
+                        (colorBadge ? '<div class="d-flex align-items-center gap-1 mb-1">' + colorBadge + '</div>' : '') +
                         '<small class="text-muted mc-unit-price" data-price="' + item.price + '">$' + item.price.toFixed(2) + ' c/u</small>' +
                         '<div class="d-flex align-items-center gap-1 mt-1">' +
                         '<button class="btn btn-outline-secondary btn-sm px-2 py-0 mc-qty" data-item-id="' + item.id + '" data-action="minus" style="line-height:1.6;">−</button>' +
@@ -290,8 +299,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Recargar mini-cart después de agregar producto
     const _origAddToCart = window.addToCart;
-    window.addToCart = function (productId, quantity) {
-        _origAddToCart(productId, quantity);
+    window.addToCart = function (productId, quantity, colorId) {
+        _origAddToCart(productId, quantity, colorId);
         if (miniCartEl && miniCartEl.classList.contains('show')) {
             setTimeout(loadMiniCart, 400);
         }

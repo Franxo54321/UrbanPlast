@@ -105,10 +105,18 @@
 
             {% if product.colors %}
             <div class="mb-3">
-                <strong>Colores:</strong>
-                {% for color in product.colors %}
-                <span class="color-swatch ms-1" style="background:{{ color.hex_code }};" title="{{ color.name }}"></span>
-                {% endfor %}
+                <span class="fw-semibold me-2">Color:</span>
+                <span id="selectedColorName" class="text-muted small">{{ product.colors[0].name }}</span>
+                <div class="d-flex gap-2 mt-2 flex-wrap" id="colorSwatches">
+                    {% for color in product.colors %}
+                    <button class="color-swatch-sel {% if loop.first %}selected{% endif %}"
+                            data-color-id="{{ color.id }}"
+                            data-color-name="{{ color.name }}"
+                            style="background:{{ color.hex_code }};"
+                            title="{{ color.name }}"
+                            aria-label="{{ color.name }}"></button>
+                    {% endfor %}
+                </div>
             </div>
             {% endif %}
 
@@ -265,10 +273,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Color swatch selection
+    const swatchContainer = document.getElementById('colorSwatches');
+    const colorNameEl = document.getElementById('selectedColorName');
+    if (swatchContainer) {
+        swatchContainer.querySelectorAll('.color-swatch-sel').forEach(function(s) {
+            s.addEventListener('click', function() {
+                swatchContainer.querySelectorAll('.color-swatch-sel').forEach(function(x) { x.classList.remove('selected'); });
+                this.classList.add('selected');
+                if (colorNameEl) colorNameEl.textContent = this.dataset.colorName;
+            });
+        });
+    }
+
+    function getSelectedColorId() {
+        if (!swatchContainer) return null;
+        const sel = swatchContainer.querySelector('.color-swatch-sel.selected');
+        return sel ? sel.dataset.colorId : null;
+    }
+
     const detailBtn = document.querySelector('.add-to-cart-detail');
     if (detailBtn) {
         detailBtn.addEventListener('click', function() {
-            addToCart(this.dataset.productId, parseInt(qtyInput.value) || 1);
+            addToCart(this.dataset.productId, parseInt(qtyInput.value) || 1, getSelectedColorId());
         });
     }
 

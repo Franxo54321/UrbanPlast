@@ -83,6 +83,8 @@ def create_app(config_class=Config):
 def _migrate_schema():
     from sqlalchemy import text, inspect
     inspector = inspect(db.engine)
+
+    # users table
     cols = {c['name'] for c in inspector.get_columns('users')}
     with db.engine.connect() as conn:
         if 'reset_token' not in cols:
@@ -91,6 +93,18 @@ def _migrate_schema():
         if 'reset_token_expiry' not in cols:
             conn.execute(text('ALTER TABLE users ADD COLUMN reset_token_expiry TIMESTAMP'))
             conn.commit()
+
+    # cart_items table
+    tables = inspector.get_table_names()
+    if 'cart_items' in tables:
+        cart_cols = {c['name'] for c in inspector.get_columns('cart_items')}
+        with db.engine.connect() as conn:
+            if 'color_id' not in cart_cols:
+                conn.execute(text('ALTER TABLE cart_items ADD COLUMN color_id INTEGER REFERENCES colors(id)'))
+                conn.commit()
+            if 'color_name' not in cart_cols:
+                conn.execute(text('ALTER TABLE cart_items ADD COLUMN color_name VARCHAR(100)'))
+                conn.commit()
 
 
 def _create_default_admin(app):

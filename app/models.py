@@ -204,10 +204,13 @@ class CartItem(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, default=1)
+    color_id = db.Column(db.Integer, db.ForeignKey('colors.id'), nullable=True)
+    color_name = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('cart_items', lazy='dynamic'))
     product = db.relationship('Product', backref='cart_items')
+    color = db.relationship('Color', foreign_keys=[color_id])
 
     @property
     def subtotal(self):

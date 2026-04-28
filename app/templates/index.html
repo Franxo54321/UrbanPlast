@@ -94,6 +94,17 @@
                         <a href="{{ url_for('main.product_detail', slug=product.slug) }}">{{ product.name }}</a>
                     </h3>
                     <p class="product-card-desc">{{ (product.description or '')[:80] }}{% if (product.description or '')|length > 80 %}…{% endif %}</p>
+                    {% if product.colors %}
+                    <div class="product-card-colors">
+                        {% for color in product.colors %}
+                        <button class="color-swatch-sel {% if loop.first %}selected{% endif %}"
+                                data-color-id="{{ color.id }}"
+                                style="background:{{ color.hex_code }};"
+                                title="{{ color.name }}"
+                                aria-label="{{ color.name }}"></button>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                     <div class="product-card-footer">
                         <span class="product-card-price">${{ "%.0f"|format(product.price) }}</span>
                         <button class="btn btn-product-detail add-to-cart-btn" data-product-id="{{ product.id }}">
@@ -133,6 +144,17 @@
                         <a href="{{ url_for('main.product_detail', slug=product.slug) }}">{{ product.name }}</a>
                     </h3>
                     <p class="product-card-desc">{{ (product.description or '')[:80] }}{% if (product.description or '')|length > 80 %}…{% endif %}</p>
+                    {% if product.colors %}
+                    <div class="product-card-colors">
+                        {% for color in product.colors %}
+                        <button class="color-swatch-sel {% if loop.first %}selected{% endif %}"
+                                data-color-id="{{ color.id }}"
+                                style="background:{{ color.hex_code }};"
+                                title="{{ color.name }}"
+                                aria-label="{{ color.name }}"></button>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                     <div class="product-card-footer">
                         <span class="product-card-price">${{ "%.0f"|format(product.price) }}</span>
                         <button class="btn btn-product-detail add-to-cart-btn" data-product-id="{{ product.id }}">
@@ -196,4 +218,19 @@
     </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.color-swatch-sel').forEach(function(swatch) {
+    swatch.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const card = this.closest('[data-product-id]');
+        if (!card) return;
+        card.querySelectorAll('.color-swatch-sel').forEach(function(s) { s.classList.remove('selected'); });
+        this.classList.add('selected');
+    });
+});
+</script>
 {% endblock %}

@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app import db
-from app.models import Product, CartItem, Order, OrderItem, Coupon, OrderStatusHistory
+from app.models import Product, CartItem, Order, OrderItem, Coupon, OrderStatusHistory, Color
 from app.auth.forms import CheckoutForm
 
 cart_bp = Blueprint('cart', __name__, template_folder='templates')
@@ -40,7 +40,22 @@ def add_to_cart():
     if not product or not product.active:
         return jsonify({'error': 'Producto no encontrado'}), 404
 
-    item = CartItem.query.filter_by(user_id=current_user.id, product_id=product_id).first()
+    # Resolve color
+    color_id = data.get('color_id') or None
+    color_name = None
+    if color_id:
+        color_id = int(color_id)
+        color_obj = Color.query.get(color_id)
+        if color_obj and color_obj in product.colors:
+            color_name = color_obj.name
+        else:
+            color_id = None
+
+    item = CartItem.query.filter_by(
+        user_id=current_user.id,
+        product_id=product_id,
+        color_id=color_id
+    ).first()
     new_quantity = (item.quantity if item else 0) + quantity
     if product.stock < new_quantity:
         return jsonify({'error': 'Stock insuficiente'}), 400
@@ -48,12 +63,16 @@ def add_to_cart():
     if item:
         item.quantity = new_quantity
     else:
-        item = CartItem(user_id=current_user.id, product_id=product_id, quantity=quantity)
+        item = CartItem(user_id=current_user.id, product_id=product_id,
+                        quantity=quantity, color_id=color_id, color_name=color_name)
         db.session.add(item)
 
     db.session.commit()
-    return jsonify({'success': True, 'cart_count': _cart_count(current_user.id),
-                    'message': 'Producto agregado al carrito'})
+    msg = f'"{product.name}"'
+    if color_name:
+        msg += f' — {color_name}'
+    msg += ' agregado al carrito'
+    return jsonify({'success': True, 'cart_count': _cart_count(current_user.id), 'message': msg})
 
 
 @cart_bp.route('/actualizar', methods=['POST'])
@@ -129,7 +148,10 @@ def cart_items():
             'subtotal': float(i.subtotal),
             'image': i.product.image_url,
             'slug': i.product.slug,
-            'stock': i.product.stock
+            'stock': i.product.stock,
+            'color_id': i.color_id,
+            'color_name': i.color_name,
+            'color_hex': i.color.hex_code if i.color else None,
         } for i in items],
         'total': total,
         'count': sum(i.quantity for i in items)
