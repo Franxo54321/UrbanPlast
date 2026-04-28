@@ -44,6 +44,9 @@ class Config:
     MP_PUBLIC_KEY = os.environ.get('MP_PUBLIC_KEY', '')
     MP_WEBHOOK_SECRET = os.environ.get('MP_WEBHOOK_SECRET', '')
 
+    # Andreani
+    ANDREANI_API_KEY = os.environ.get('ANDREANI_API_KEY', '')
+
     # Email (Flask-Mail)
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
@@ -57,3 +60,7 @@ class Config:
 
     # URL base del sitio (para callbacks de MercadoPago y links de email en producción)
     BASE_URL = _get_base_url()
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
+    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')

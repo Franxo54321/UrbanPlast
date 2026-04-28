@@ -243,6 +243,47 @@ h1, h2, h3, h4, h5, h6 {
     color: #e74c3c;
 }
 
+.btn-google {
+    background: #fff;
+    color: #3c4043;
+    border: 1px solid rgba(0,0,0,0.12);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.btn-google:hover {
+    background: #f1f3f4;
+    color: #3c4043;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.2);
+}
+
+.divider-or {
+    position: relative;
+    text-align: center;
+}
+
+.divider-or::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--up-border);
+}
+
+.divider-or span {
+    background: var(--up-dark-soft);
+    padding: 0 12px;
+    position: relative;
+    color: var(--up-muted);
+    font-size: .82rem;
+}
+
 /* ===== FORM CONTROLS ===== */
 .form-control, .form-select {
     background: rgba(255,255,255,0.04);
@@ -658,6 +699,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .table td, .table th {
+    background: var(--up-dark-soft);
     border-color: var(--up-border);
     vertical-align: middle;
 }

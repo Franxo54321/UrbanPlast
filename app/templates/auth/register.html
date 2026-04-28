@@ -8,6 +8,13 @@
             <div class="card shadow">
                 <div class="card-body p-4">
                     <h3 class="text-center mb-4"><i class="bi bi-person-plus"></i> Crear Cuenta</h3>
+
+                    <a href="{{ url_for('auth.google_login') }}" class="btn btn-google w-100 mb-2">
+                        <img src="/static/img/google-icon.svg" width="18" height="18" class="me-2" alt="Google">
+                        Registrarse con Google
+                    </a>
+                    <div class="divider-or my-3"><span>o</span></div>
+
                     <form method="POST" novalidate>
                         {{ form.hidden_tag() }}
                         <div class="mb-3">

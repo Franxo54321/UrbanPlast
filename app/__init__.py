@@ -9,6 +9,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail
+from authlib.integrations.flask_client import OAuth
 from config import Config
 
 db = SQLAlchemy()
@@ -17,6 +18,7 @@ migrate = Migrate()
 csrf = CSRFProtect()
 mail = Mail()
 limiter = Limiter(key_func=get_remote_address, default_limits=["500 per day"])
+oauth = OAuth()
 
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Iniciá sesión para continuar.'
@@ -33,6 +35,15 @@ def create_app(config_class=Config):
     csrf.init_app(app)
     mail.init_app(app)
     limiter.init_app(app)
+    oauth.init_app(app)
+
+    oauth.register(
+        name='google',
+        client_id=app.config.get('GOOGLE_CLIENT_ID', ''),
+        client_secret=app.config.get('GOOGLE_CLIENT_SECRET', ''),
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'},
+    )
 
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -92,6 +103,9 @@ def _migrate_schema():
             conn.commit()
         if 'reset_token_expiry' not in cols:
             conn.execute(text('ALTER TABLE users ADD COLUMN reset_token_expiry TIMESTAMP'))
+            conn.commit()
+        if 'google_id' not in cols:
+            conn.execute(text('ALTER TABLE users ADD COLUMN google_id VARCHAR(100) UNIQUE'))
             conn.commit()
 
     # cart_items table

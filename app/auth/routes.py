@@ -1,8 +1,9 @@
+import re
 import secrets
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from app import db, limiter
+from app import db, limiter, oauth
 from app.models import User
 from app.auth.forms import LoginForm, RegisterForm, ProfileForm, ChangePasswordForm, ForgotPasswordForm, ResetPasswordForm
 
@@ -217,3 +218,66 @@ def _is_safe_url(target):
     ref_url = urlparse(request.host_url)
     test_url = urlparse(target)
     return test_url.scheme in ('', 'http', 'https') and ref_url.netloc == test_url.netloc
+
+
+# ──────────────────── Google OAuth ────────────────────
+
+@auth_bp.route('/google')
+def google_login():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    redirect_uri = url_for('auth.google_callback', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@auth_bp.route('/google/callback')
+def google_callback():
+    try:
+        token = oauth.google.authorize_access_token()
+    except Exception:
+        flash('Error al autenticar con Google. Intentá de nuevo.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    info = token.get('userinfo')
+    if not info or not info.get('email'):
+        flash('No se pudo obtener la información de tu cuenta de Google.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    google_id = info['sub']
+    email = info['email']
+
+    # Buscar por google_id primero, luego por email
+    user = User.query.filter_by(google_id=google_id).first()
+    if not user:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Vincular cuenta existente
+            user.google_id = google_id
+            if not user.email_verified:
+                user.email_verified = True
+            db.session.commit()
+        else:
+            # Crear nuevo usuario
+            base = re.sub(r'[^a-z0-9_.-]', '', email.split('@')[0].lower())[:40] or 'user'
+            username = base
+            counter = 1
+            while User.query.filter_by(username=username).first():
+                username = f'{base}{counter}'
+                counter += 1
+
+            user = User(
+                username=username,
+                email=email,
+                email_verified=True,
+                google_id=google_id,
+            )
+            user.set_password(secrets.token_urlsafe(32))
+            db.session.add(user)
+            db.session.commit()
+
+    login_user(user)
+    flash('¡Bienvenido!', 'success')
+    next_page = request.args.get('next')
+    if next_page and not _is_safe_url(next_page):
+        next_page = None
+    return redirect(next_page or url_for('main.index'))
