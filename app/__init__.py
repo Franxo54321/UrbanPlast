@@ -107,6 +107,22 @@ def _migrate_schema():
         if 'google_id' not in cols:
             conn.execute(text('ALTER TABLE users ADD COLUMN google_id VARCHAR(100) UNIQUE'))
             conn.commit()
+        new_user_cols = {
+            'avatar':       'VARCHAR(300)',
+            'full_name':    'VARCHAR(200)',
+            'phone':        'VARCHAR(50)',
+            'birth_date':   'DATE',
+            'dni':          'VARCHAR(20)',
+            'address':      'VARCHAR(300)',
+            'city':         'VARCHAR(100)',
+            'province':     'VARCHAR(100)',
+            'postal_code':  'VARCHAR(20)',
+            'country':      'VARCHAR(100)',
+        }
+        for col, col_type in new_user_cols.items():
+            if col not in cols:
+                conn.execute(text(f'ALTER TABLE users ADD COLUMN {col} {col_type}'))
+                conn.commit()
 
     # cart_items table
     tables = inspector.get_table_names()

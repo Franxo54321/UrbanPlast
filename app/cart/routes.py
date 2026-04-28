@@ -202,6 +202,15 @@ def checkout():
     subtotal = sum(item.subtotal for item in items)
     form = CheckoutForm()
 
+    # Pre-fill address from user profile on GET
+    if request.method == 'GET' and current_user.address:
+        form.address.data     = current_user.address
+        form.city.data        = current_user.city
+        form.province.data    = current_user.province
+        form.postal_code.data = current_user.postal_code
+        form.country.data     = current_user.country or 'Argentina'
+        form.phone.data       = form.phone.data or current_user.phone
+
     if form.validate_on_submit():
         coupon_id = request.form.get('coupon_id', type=int)
         discount_amount = 0

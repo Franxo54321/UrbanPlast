@@ -1,92 +1,237 @@
 {% extends "base.html" %}
 {% block title %}Mi Perfil{% endblock %}
 
+{% block extra_css %}
+<style>
+.profile-avatar-wrap {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    margin: 0 auto 16px;
+    cursor: pointer;
+}
+.profile-avatar {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--up-green);
+}
+.profile-avatar-initials {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: var(--up-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--up-wood-pale);
+    font-family: 'Playfair Display', serif;
+    border: 3px solid var(--up-green-light);
+}
+.profile-avatar-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 600;
+    flex-direction: column;
+    gap: 4px;
+}
+.profile-avatar-wrap:hover .profile-avatar-overlay { opacity: 1; }
+.section-card {
+    background: var(--up-dark-soft);
+    border: 1px solid var(--up-border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 20px;
+}
+.section-card-title {
+    font-size: .7rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--up-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--up-border);
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="d-flex align-items-center mb-4">
-                <i class="bi bi-person-circle fs-1 me-3" style="color: var(--up-green);"></i>
-                <div>
-                    <h2 class="mb-0">Mi Perfil</h2>
-                    <small class="text-muted">Editá tus datos personales</small>
-                </div>
-            </div>
+        <div class="col-lg-7">
 
-            <div class="card shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <form method="POST" novalidate>
-                        {{ form.hidden_tag() }}
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">{{ form.username.label.text }}</label>
-                                {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
-                                {% for error in form.username.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">{{ form.email.label.text }}</label>
-                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
-                                {% for error in form.email.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="mt-4 d-flex gap-2">
-                            <button type="submit" class="btn btn-up-green btn-lg">
-                                <i class="bi bi-check-lg"></i> Guardar cambios
-                            </button>
-                            <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary btn-lg">
-                                <i class="bi bi-key"></i> Cambiar contraseña
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            <form method="POST" enctype="multipart/form-data" novalidate>
+                {{ form.hidden_tag() }}
 
+                <!-- Avatar + Cuenta -->
+                <div class="section-card text-center">
+                    <div class="section-card-title text-start">Foto y cuenta</div>
+
+                    <!-- Avatar -->
+                    <div class="profile-avatar-wrap" onclick="document.getElementById('avatarInput').click()">
+                        {% if current_user.avatar_url %}
+                        <img src="{{ current_user.avatar_url }}" class="profile-avatar" alt="Avatar" id="avatarPreview">
+                        {% else %}
+                        <div class="profile-avatar-initials" id="avatarInitials">
+                            {{ (current_user.full_name or current_user.username)[0].upper() }}
+                        </div>
+                        {% endif %}
+                        <div class="profile-avatar-overlay">
+                            <i class="bi bi-camera fs-5"></i>
+                            <span>Cambiar</span>
+                        </div>
+                    </div>
+                    <input type="file" id="avatarInput" name="avatar" accept="image/*" class="d-none">
+                    <small class="text-muted d-block mb-4">JPG, PNG o WebP · máx. 5MB</small>
+
+                    <div class="row g-3 text-start">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.username.label.text }}</label>
+                            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                            {% for e in form.username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.email.label.text }}</label>
+                            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                            {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Datos personales -->
+                <div class="section-card">
+                    <div class="section-card-title">Datos personales</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">{{ form.full_name.label.text }}</label>
+                            {{ form.full_name(class="form-control", placeholder="Ej: Juan Pérez") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.phone.label.text }}</label>
+                            {{ form.phone(class="form-control", placeholder="+54 11 1234-5678") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.dni.label.text }}</label>
+                            {{ form.dni(class="form-control", placeholder="Ej: 30123456") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.birth_date.label.text }}</label>
+                            {{ form.birth_date(class="form-control", type="date") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dirección de envío -->
+                <div class="section-card">
+                    <div class="section-card-title">
+                        <i class="bi bi-geo-alt me-1"></i>Dirección de envío
+                        <span class="ms-2 text-muted fw-normal normal-case" style="text-transform:none;letter-spacing:0;font-size:.78rem;">Se pre-carga automáticamente en el checkout</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">{{ form.address.label.text }}</label>
+                            {{ form.address(class="form-control", placeholder="Av. San Martín 1234") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.city.label.text }}</label>
+                            {{ form.city(class="form-control", placeholder="Buenos Aires") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.province.label.text }}</label>
+                            {{ form.province(class="form-control", placeholder="CABA") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.postal_code.label.text }}</label>
+                            {{ form.postal_code(class="form-control", placeholder="1000") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.country.label.text }}</label>
+                            {{ form.country(class="form-control", placeholder="Argentina") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-up-green btn-lg flex-grow-1">
+                        <i class="bi bi-check-lg me-1"></i> Guardar cambios
+                    </button>
+                    <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary btn-lg">
+                        <i class="bi bi-key"></i>
+                    </a>
+                </div>
+            </form>
+
+            <!-- Últimos pedidos -->
             {% if current_user.orders.count() > 0 %}
-            <div class="card shadow-sm rounded-4 mt-4">
-                <div class="card-header bg-transparent">
-                    <h5 class="mb-0"><i class="bi bi-bag-check"></i> Últimos pedidos</h5>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>#</th>
-                                <th>Fecha</th>
-                                <th>Total</th>
-                                <th>Estado</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in current_user.orders.order_by(None).limit(5).all() %}
-                            <tr>
-                                <td>{{ order.id }}</td>
-                                <td>{{ order.created_at.strftime('%d/%m/%Y') }}</td>
-                                <td class="fw-bold">${{ "%.2f"|format(order.total) }}</td>
-                                <td>
-                                    {% if order.status == 'pendiente' %}
-                                    <span class="badge bg-warning text-dark">Pendiente</span>
-                                    {% elif order.status == 'pagado' %}
-                                    <span class="badge bg-success">Pagado</span>
-                                    {% elif order.status == 'enviado' %}
-                                    <span class="badge bg-info">Enviado</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">{{ order.status|capitalize }}</span>
-                                    {% endif %}
-                                </td>
-                                <td><a href="{{ url_for('cart.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="section-card mt-4">
+                <div class="section-card-title"><i class="bi bi-bag-check me-1"></i>Últimos pedidos</div>
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for order in current_user.orders.order_by(None).limit(5).all() %}
+                        <tr>
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.created_at.strftime('%d/%m/%Y') }}</td>
+                            <td class="fw-bold">${{ "%.2f"|format(order.total) }}</td>
+                            <td>
+                                {% if order.status == 'pendiente' %}<span class="badge bg-warning">Pendiente</span>
+                                {% elif order.status == 'pagado' %}<span class="badge bg-success">Pagado</span>
+                                {% elif order.status == 'enviado' %}<span class="badge bg-info">Enviado</span>
+                                {% else %}<span class="badge bg-secondary">{{ order.status|capitalize }}</span>{% endif %}
+                            </td>
+                            <td><a href="{{ url_for('cart.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
             {% endif %}
+
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preview avatar antes de subir
+document.getElementById('avatarInput').addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Replace initials div or existing img with new preview
+        const wrap = document.querySelector('.profile-avatar-wrap');
+        let img = document.getElementById('avatarPreview');
+        if (!img) {
+            const initials = document.getElementById('avatarInitials');
+            if (initials) initials.remove();
+            img = document.createElement('img');
+            img.id = 'avatarPreview';
+            img.className = 'profile-avatar';
+            img.alt = 'Avatar';
+            wrap.insertBefore(img, wrap.querySelector('.profile-avatar-overlay'));
+        }
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+</script>
 {% endblock %}

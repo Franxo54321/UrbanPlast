@@ -152,7 +152,7 @@
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Estado</label>
-                                    <select name="status" class="form-select">
+                                <select name="status" class="form-select" style="background: var(--up-dark-soft) !important;">
                                         <option value="pendiente" {% if order.status == 'pendiente' %}selected{% endif %}>⏳ Pendiente</option>
                                         <option value="pagado" {% if order.status == 'pagado' %}selected{% endif %}>✅ Pagado</option>
                                         <option value="enviado" {% if order.status == 'enviado' %}selected{% endif %}>🚚 Enviado</option>

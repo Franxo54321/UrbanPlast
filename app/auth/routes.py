@@ -190,12 +190,55 @@ def profile():
             if existing:
                 flash('Ese email ya está registrado.', 'danger')
                 return render_template('auth/profile.html', form=form)
-        current_user.username = form.username.data
-        current_user.email = form.email.data
+
+        # Avatar upload
+        avatar_file = request.files.get('avatar')
+        if avatar_file and avatar_file.filename:
+            saved = _save_user_avatar(avatar_file)
+            if saved:
+                current_user.avatar = saved
+
+        current_user.username    = form.username.data
+        current_user.email       = form.email.data
+        current_user.full_name   = form.full_name.data
+        current_user.phone       = form.phone.data
+        current_user.birth_date  = form.birth_date.data
+        current_user.dni         = form.dni.data
+        current_user.address     = form.address.data
+        current_user.city        = form.city.data
+        current_user.province    = form.province.data
+        current_user.postal_code = form.postal_code.data
+        current_user.country     = form.country.data
         db.session.commit()
         flash('Datos actualizados correctamente.', 'success')
         return redirect(url_for('auth.profile'))
     return render_template('auth/profile.html', form=form)
+
+
+def _save_user_avatar(file):
+    from werkzeug.utils import secure_filename
+    import uuid as _uuid
+    from flask import current_app
+    if not file or file.filename == '':
+        return None
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+    if ext not in {'jpg', 'jpeg', 'png', 'webp'}:
+        return None
+    file_bytes = file.read()
+    try:
+        from PIL import Image
+        import io as _io
+        img = Image.open(_io.BytesIO(file_bytes))
+        img.verify()
+    except Exception:
+        return None
+    unique_name = f"avatar_{_uuid.uuid4().hex}.{ext}"
+    import os
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_name)
+    with open(filepath, 'wb') as out:
+        out.write(file_bytes)
+    return unique_name
 
 
 @auth_bp.route('/cambiar-contrasena', methods=['GET', 'POST'])

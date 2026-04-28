@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField
+from flask_wtf.file import FileField, FileAllowed
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional
 from app.models import User
 
@@ -36,8 +37,21 @@ class RegisterForm(FlaskForm):
 
 
 class ProfileForm(FlaskForm):
-    username = StringField('Usuario', validators=[DataRequired(), Length(min=3, max=80)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    # Cuenta
+    username  = StringField('Usuario', validators=[DataRequired(), Length(min=3, max=80)])
+    email     = StringField('Email',   validators=[DataRequired(), Email()])
+    avatar    = FileField('Foto de perfil', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'webp'], 'Solo imágenes.')])
+    # Datos personales
+    full_name   = StringField('Nombre completo', validators=[Optional(), Length(max=200)])
+    phone       = StringField('Teléfono',        validators=[Optional(), Length(max=50)])
+    birth_date  = DateField('Fecha de nacimiento', validators=[Optional()], format='%Y-%m-%d')
+    dni         = StringField('DNI',             validators=[Optional(), Length(max=20)])
+    # Dirección de envío
+    address     = StringField('Dirección',   validators=[Optional(), Length(max=300)])
+    city        = StringField('Ciudad',      validators=[Optional(), Length(max=100)])
+    province    = StringField('Provincia',   validators=[Optional(), Length(max=100)])
+    postal_code = StringField('Código Postal', validators=[Optional(), Length(max=20)])
+    country     = StringField('País',        validators=[Optional(), Length(max=100)])
     submit = SubmitField('Guardar cambios')
 
 

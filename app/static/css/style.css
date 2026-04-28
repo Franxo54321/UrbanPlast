@@ -260,6 +260,14 @@ h1, h2, h3, h4, h5, h6 {
     color: #3c4043;
     box-shadow: 0 1px 6px rgba(0,0,0,0.2);
 }
+.nav-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 4px;
+    vertical-align: middle;
+}
 
 .divider-or {
     position: relative;

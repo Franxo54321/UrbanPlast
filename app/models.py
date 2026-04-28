@@ -17,7 +17,23 @@ class User(UserMixin, db.Model):
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     google_id = db.Column(db.String(100), nullable=True, unique=True)
+    # Profile
+    avatar = db.Column(db.String(300), nullable=True)
+    full_name = db.Column(db.String(200), nullable=True)
+    phone = db.Column(db.String(50), nullable=True)
+    birth_date = db.Column(db.Date, nullable=True)
+    dni = db.Column(db.String(20), nullable=True)
+    # Shipping address
+    address = db.Column(db.String(300), nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    province = db.Column(db.String(100), nullable=True)
+    postal_code = db.Column(db.String(20), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def avatar_url(self):
+        return f'/static/uploads/{self.avatar}' if self.avatar else None
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
