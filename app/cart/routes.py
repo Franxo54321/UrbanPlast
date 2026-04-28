@@ -245,7 +245,8 @@ def checkout():
                 product_id=item.product_id,
                 product_name=item.product.name,
                 price=item.product.price,
-                quantity=item.quantity
+                quantity=item.quantity,
+                color_name=item.color_name,
             ))
             item.product.stock = max(0, item.product.stock - item.quantity)
 

@@ -106,6 +106,22 @@ def _migrate_schema():
                 conn.execute(text('ALTER TABLE cart_items ADD COLUMN color_name VARCHAR(100)'))
                 conn.commit()
 
+    # order_items table
+    if 'order_items' in tables:
+        order_item_cols = {c['name'] for c in inspector.get_columns('order_items')}
+        with db.engine.connect() as conn:
+            if 'color_name' not in order_item_cols:
+                conn.execute(text('ALTER TABLE order_items ADD COLUMN color_name VARCHAR(100)'))
+                conn.commit()
+
+    # product_images table
+    if 'product_images' in tables:
+        prod_img_cols = {c['name'] for c in inspector.get_columns('product_images')}
+        with db.engine.connect() as conn:
+            if 'color_id' not in prod_img_cols:
+                conn.execute(text('ALTER TABLE product_images ADD COLUMN color_id INTEGER REFERENCES colors(id)'))
+                conn.commit()
+
 
 def _create_default_admin(app):
     from app.models import User

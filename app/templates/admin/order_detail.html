@@ -84,12 +84,13 @@
                         <div class="card-body p-0">
                             <table class="table table-hover mb-0 align-middle">
                                 <thead class="table-light">
-                                    <tr><th>Producto</th><th class="text-center">Cantidad</th><th class="text-end">Precio</th><th class="text-end">Subtotal</th></tr>
+                                    <tr><th>Producto</th><th>Color</th><th class="text-center">Cantidad</th><th class="text-end">Precio</th><th class="text-end">Subtotal</th></tr>
                                 </thead>
                                 <tbody>
                                     {% for item in order.items %}
                                     <tr>
                                         <td>{{ item.product_name }}</td>
+                                        <td>{% if item.color_name %}<span class="badge bg-secondary">{{ item.color_name }}</span>{% else %}<span class="text-muted small">—</span>{% endif %}</td>
                                         <td class="text-center">{{ item.quantity }}</td>
                                         <td class="text-end">${{ "%.2f"|format(item.price) }}</td>
                                         <td class="text-end fw-bold">${{ "%.2f"|format(item.subtotal) }}</td>

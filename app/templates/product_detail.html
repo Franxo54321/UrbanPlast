@@ -276,12 +276,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Color swatch selection
     const swatchContainer = document.getElementById('colorSwatches');
     const colorNameEl = document.getElementById('selectedColorName');
+    const colorImageMap = {{ product.color_image_map | tojson }};
     if (swatchContainer) {
         swatchContainer.querySelectorAll('.color-swatch-sel').forEach(function(s) {
             s.addEventListener('click', function() {
                 swatchContainer.querySelectorAll('.color-swatch-sel').forEach(function(x) { x.classList.remove('selected'); });
                 this.classList.add('selected');
                 if (colorNameEl) colorNameEl.textContent = this.dataset.colorName;
+                // Switch gallery image if this color has a specific image
+                const colorId = parseInt(this.dataset.colorId);
+                if (colorImageMap[colorId]) {
+                    const idx = galleryImages.indexOf(colorImageMap[colorId]);
+                    if (idx >= 0) {
+                        goToImage(idx);
+                    } else {
+                        // Image not in gallery (color-only), just update main img
+                        const main = document.getElementById('mainImage');
+                        if (main) main.src = colorImageMap[colorId];
+                    }
+                }
             });
         });
     }

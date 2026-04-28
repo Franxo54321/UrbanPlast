@@ -75,6 +75,9 @@ class ProductImage(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     filename = db.Column(db.String(300), nullable=False)
     position = db.Column(db.Integer, default=0)
+    color_id = db.Column(db.Integer, db.ForeignKey('colors.id'), nullable=True)
+
+    color = db.relationship('Color', foreign_keys=[color_id])
 
     @property
     def url(self):
@@ -130,6 +133,13 @@ class Product(db.Model):
         if self.image:
             return [f'/static/uploads/{self.image}']
         return ['/static/img/no-image.svg']
+
+    @property
+    def color_image_map(self):
+        result = {}
+        for img in self.images.filter(ProductImage.color_id.isnot(None)).all():
+            result[img.color_id] = img.url
+        return result
 
     @property
     def avg_rating(self):
@@ -265,6 +275,7 @@ class OrderItem(db.Model):
     product_name = db.Column(db.String(200), nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+    color_name = db.Column(db.String(100), nullable=True)
 
     product = db.relationship('Product')
 

@@ -181,6 +181,23 @@ def product_create():
                 db.session.add(ProductImage(product_id=product.id, filename=saved, position=pos))
                 pos += 1
 
+        # Color-specific images
+        for color in selected_colors:
+            color_file = request.files.get(f'color_image_{color.id}')
+            if color_file and color_file.filename:
+                saved = _save_image(color_file)
+                if saved:
+                    # Replace existing color image if any
+                    existing = ProductImage.query.filter_by(product_id=product.id, color_id=color.id).first()
+                    if existing:
+                        old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], existing.filename)
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
+                        existing.filename = saved
+                    else:
+                        db.session.add(ProductImage(product_id=product.id, filename=saved, position=pos, color_id=color.id))
+                        pos += 1
+
         db.session.commit()
         flash('Producto creado exitosamente.', 'success')
         return redirect(url_for('admin.products'))
@@ -234,6 +251,22 @@ def product_edit(product_id):
             if saved:
                 db.session.add(ProductImage(product_id=product.id, filename=saved, position=pos))
                 pos += 1
+
+        # Color-specific images
+        for color in selected_colors:
+            color_file = request.files.get(f'color_image_{color.id}')
+            if color_file and color_file.filename:
+                saved = _save_image(color_file)
+                if saved:
+                    existing = ProductImage.query.filter_by(product_id=product.id, color_id=color.id).first()
+                    if existing:
+                        old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], existing.filename)
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
+                        existing.filename = saved
+                    else:
+                        db.session.add(ProductImage(product_id=product.id, filename=saved, position=pos, color_id=color.id))
+                        pos += 1
 
         db.session.commit()
         flash('Producto actualizado.', 'success')

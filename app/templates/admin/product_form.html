@@ -90,12 +90,12 @@
                         <div class="row g-3 mt-2">
                             <div class="col-12">
                                 <label class="form-label fw-semibold"><i class="bi bi-palette"></i> Colores disponibles</label>
-                                <div class="d-flex flex-wrap gap-3">
+                                <div class="d-flex flex-wrap gap-3" id="colorCheckboxes">
                                     {% for value, label in form.color_ids.choices %}
-                                    {% set color_obj = None %}
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="color_ids" value="{{ value }}" id="color_{{ value }}"
-                                               {% if value in (form.color_ids.data or []) %}checked{% endif %}>
+                                        <input class="form-check-input color-check" type="checkbox" name="color_ids" value="{{ value }}" id="color_{{ value }}"
+                                               {% if value in (form.color_ids.data or []) %}checked{% endif %}
+                                               data-color-id="{{ value }}" data-color-name="{{ label }}">
                                         <label class="form-check-label d-flex align-items-center gap-1" for="color_{{ value }}">
                                             {{ label }}
                                         </label>
@@ -107,6 +107,30 @@
                                 {% endif %}
                             </div>
                         </div>
+
+                        <!-- Fotos por color -->
+                        {% if form.color_ids.choices %}
+                        <div class="row g-3 mt-1" id="colorImagesSection">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold"><i class="bi bi-image"></i> Foto por color <small class="text-muted fw-normal">(opcional — se muestra al elegir ese color)</small></label>
+                                <div id="colorImageInputs">
+                                    {% for value, label in form.color_ids.choices %}
+                                    {% set is_checked = value in (form.color_ids.data or []) %}
+                                    <div class="color-img-row d-flex align-items-center gap-3 mb-2 {% if not is_checked %}d-none{% endif %}" id="colorImgRow_{{ value }}" data-color-id="{{ value }}">
+                                        <span class="small fw-semibold" style="min-width:100px;">{{ label }}</span>
+                                        <input type="file" class="form-control form-control-sm" name="color_image_{{ value }}" accept="image/*" style="max-width:280px;">
+                                        {% if editing %}
+                                        {% set existing_img = product.images.filter_by(color_id=value).first() %}
+                                        {% if existing_img %}
+                                        <img src="{{ existing_img.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" title="Imagen actual para {{ label }}">
+                                        {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="row g-3 mt-2">
                             <div class="col-md-3">
@@ -134,4 +158,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.color-check').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        var row = document.getElementById('colorImgRow_' + this.dataset.colorId);
+        if (row) {
+            if (this.checked) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+                var fileInput = row.querySelector('input[type="file"]');
+                if (fileInput) fileInput.value = '';
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
