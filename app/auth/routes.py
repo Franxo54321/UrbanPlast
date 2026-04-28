@@ -226,7 +226,8 @@ def _is_safe_url(target):
 def google_login():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
-    redirect_uri = url_for('auth.google_callback', _external=True)
+    base = current_app.config.get('BASE_URL', '').rstrip('/')
+    redirect_uri = f"{base}/auth/google/callback"
     return oauth.google.authorize_redirect(redirect_uri)
 
 
