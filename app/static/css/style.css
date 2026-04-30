@@ -294,7 +294,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== FORM CONTROLS ===== */
 .form-control, .form-select {
-    background: rgba(255,255,255,0.04);
+    background: var(--up-dark-soft);
     border: 1px solid var(--up-border);
     color: var(--up-wood-pale);
     font-family: 'DM Sans', sans-serif;
@@ -369,7 +369,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .product-card .card-img-top {
-    height: 200px;
     object-fit: cover;
 }
 
