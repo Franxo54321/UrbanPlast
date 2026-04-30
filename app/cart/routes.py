@@ -5,7 +5,6 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
-from sqlalchemy.orm import with_for_update
 from app import db
 from app.models import Product, CartItem, Order, OrderItem, Coupon, OrderStatusHistory, Color
 from app.auth.forms import CheckoutForm
