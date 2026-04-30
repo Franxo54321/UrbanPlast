@@ -407,7 +407,7 @@ function lightboxNav(dir) {
         const grid = document.getElementById('recentlyViewedGrid');
         if (section && grid) {
             grid.innerHTML = others.map(function (p) {
-                return '<div class="col-6 col-md-3 col-lg-2"><a href="/producto/' + p.slug + '" class="text-decoration-none"><div class="card h-100 shadow-sm"><img src="' + p.image + '" class="card-img-top" alt="' + p.name + '" loading="lazy" style="height:110px;object-fit:cover;"><div class="card-body p-2"><small class="fw-semibold text-dark d-block text-truncate">' + p.name + '</small><small class="fw-bold" style="color:var(--up-green);">$' + parseFloat(p.price).toFixed(2) + '</small></div></div></a></div>';
+                return '<div class="col-6 col-md-3 col-lg-2"><a href="/producto/' + p.slug + '" class="text-decoration-none"><div class="card h-100 shadow-sm"><img src="' + p.image + '" class="card-img-top" alt="' + p.name + '" loading="lazy" style="object-fit:cover;"><div class="card-body p-2"><small class="fw-semibold text-dark d-block text-truncate">' + p.name + '</small><small class="fw-bold" style="color:var(--up-green);">$' + parseFloat(p.price).toFixed(2) + '</small></div></div></a></div>';
             }).join('');
             section.classList.remove('d-none');
         }
