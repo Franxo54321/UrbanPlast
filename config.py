@@ -6,6 +6,8 @@ load_dotenv()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+_IS_PROD = bool(os.environ.get('RAILWAY_ENVIRONMENT'))
+
 
 def _get_database_url():
     """Railway puede entregar 'postgres://' pero SQLAlchemy 2.x requiere 'postgresql://'"""
@@ -28,8 +30,17 @@ def _get_base_url():
     return f'https://{base_url}'
 
 
+def _get_secret_key():
+    key = os.environ.get('SECRET_KEY')
+    if not key:
+        if _IS_PROD:
+            raise RuntimeError('SECRET_KEY no configurada en producción.')
+        return os.urandom(32).hex()
+    return key
+
+
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', os.urandom(32).hex())
+    SECRET_KEY = _get_secret_key()
     SQLALCHEMY_DATABASE_URI = _get_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.path.join(basedir, 'app', 'static', 'uploads')
@@ -38,6 +49,12 @@ class Config:
 
     # Session
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = _IS_PROD
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SECURE = _IS_PROD
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
 
     # MercadoPago
     MP_ACCESS_TOKEN = os.environ.get('MP_ACCESS_TOKEN', '')

@@ -1,8 +1,17 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional
+from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional, Regexp
 from app.models import User
+
+_PASSWORD_VALIDATORS = [
+    DataRequired(),
+    Length(min=10, message='La contraseña debe tener al menos 10 caracteres'),
+    Regexp(
+        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$',
+        message='Debe incluir mayúsculas, minúsculas y números'
+    ),
+]
 
 
 class LoginForm(FlaskForm):
@@ -17,9 +26,7 @@ class RegisterForm(FlaskForm):
         DataRequired(), Length(min=3, max=80)
     ])
     email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Contraseña', validators=[
-        DataRequired(), Length(min=8, message='La contraseña debe tener al menos 8 caracteres')
-    ])
+    password = PasswordField('Contraseña', validators=_PASSWORD_VALIDATORS)
     confirm_password = PasswordField('Confirmar Contraseña', validators=[
         DataRequired(), EqualTo('password', message='Las contraseñas no coinciden')
     ])
@@ -28,12 +35,12 @@ class RegisterForm(FlaskForm):
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
         if user:
-            raise ValidationError('Ese nombre de usuario ya está en uso.')
+            raise ValidationError('No se pudo completar el registro con esos datos.')
 
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
         if user:
-            raise ValidationError('Ese email ya está registrado.')
+            raise ValidationError('No se pudo completar el registro con esos datos.')
 
 
 class ProfileForm(FlaskForm):
@@ -57,9 +64,7 @@ class ProfileForm(FlaskForm):
 
 class ChangePasswordForm(FlaskForm):
     current_password = PasswordField('Contraseña actual', validators=[DataRequired()])
-    new_password = PasswordField('Nueva contraseña', validators=[
-        DataRequired(), Length(min=8, message='Mínimo 8 caracteres')
-    ])
+    new_password = PasswordField('Nueva contraseña', validators=_PASSWORD_VALIDATORS)
     confirm_password = PasswordField('Confirmar nueva contraseña', validators=[
         DataRequired(), EqualTo('new_password', message='Las contraseñas no coinciden')
     ])
@@ -72,9 +77,7 @@ class ForgotPasswordForm(FlaskForm):
 
 
 class ResetPasswordForm(FlaskForm):
-    new_password = PasswordField('Nueva contraseña', validators=[
-        DataRequired(), Length(min=8, message='Mínimo 8 caracteres')
-    ])
+    new_password = PasswordField('Nueva contraseña', validators=_PASSWORD_VALIDATORS)
     confirm_password = PasswordField('Confirmar contraseña', validators=[
         DataRequired(), EqualTo('new_password', message='Las contraseñas no coinciden')
     ])

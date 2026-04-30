@@ -1,12 +1,16 @@
 import hmac
 import hashlib
+import logging
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
+from sqlalchemy.orm import with_for_update
 from app import db
 from app.models import Product, CartItem, Order, OrderItem, Coupon, OrderStatusHistory, Color
 from app.auth.forms import CheckoutForm
+
+logger = logging.getLogger(__name__)
 
 cart_bp = Blueprint('cart', __name__, template_folder='templates')
 
@@ -248,16 +252,27 @@ def checkout():
             order_id=order.id, status='pendiente', note='Pedido creado'
         ))
 
+        product_ids = [item.product_id for item in items]
+        locked_products = (db.session.query(Product)
+                           .filter(Product.id.in_(product_ids))
+                           .with_for_update().all())
+        products_by_id = {p.id: p for p in locked_products}
+
         for item in items:
+            p = products_by_id.get(item.product_id)
+            if not p or p.stock < item.quantity:
+                db.session.rollback()
+                flash(f'Stock insuficiente de "{item.product.name}". Revisá tu carrito.', 'danger')
+                return redirect(url_for('cart.view_cart'))
+            p.stock -= item.quantity
             db.session.add(OrderItem(
                 order_id=order.id,
                 product_id=item.product_id,
-                product_name=item.product.name,
-                price=item.product.price,
+                product_name=p.name,
+                price=p.price,
                 quantity=item.quantity,
                 color_name=item.color_name,
             ))
-            item.product.stock = max(0, item.product.stock - item.quantity)
 
         CartItem.query.filter_by(user_id=current_user.id).delete()
         db.session.commit()
@@ -301,8 +316,8 @@ def _send_order_emails(order):
                 recipients=[admin_email],
                 html=admin_html
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error('Error enviando emails de orden #%s: %s', order.id, e)
 
 
 def _create_mp_preference(order):
@@ -352,6 +367,8 @@ def _create_mp_preference(order):
 def _verify_mp_webhook(req):
     secret = current_app.config.get('MP_WEBHOOK_SECRET', '')
     if not secret:
+        if current_app.config.get('RAILWAY_ENVIRONMENT') or not current_app.debug:
+            return False
         return True
 
     x_signature = req.headers.get('x-signature', '')
@@ -381,16 +398,8 @@ def _verify_mp_webhook(req):
 @login_required
 def mp_success():
     order_id = request.args.get('order_id', type=int)
-    payment_id = request.args.get('payment_id', '')
-    if order_id:
-        order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
-        if order:
-            order.status = 'pagado'
-            order.mp_payment_id = str(payment_id)
-            db.session.add(OrderStatusHistory(order_id=order.id, status='pagado',
-                                              note='Pago aprobado por MercadoPago'))
-            db.session.commit()
-    flash('¡Pago aprobado! Tu pedido fue confirmado.', 'success')
+    # Estado solo se actualiza por webhook validado con HMAC — no por URL params
+    flash('Recibimos tu pago. Te confirmamos por email cuando MercadoPago lo acredite.', 'success')
     return redirect(url_for('cart.order_detail', order_id=order_id))
 
 

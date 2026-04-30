@@ -77,6 +77,17 @@ def create_app(config_class=Config):
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "img-src 'self' data: https:; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://sdk.mercadopago.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self' https://*.mercadopago.com.ar https://*.mercadopago.com"
+        )
         if not app.debug:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         return response
@@ -98,6 +109,9 @@ def _migrate_schema():
     # users table
     cols = {c['name'] for c in inspector.get_columns('users')}
     with db.engine.connect() as conn:
+        if 'verification_token_expiry' not in cols:
+            conn.execute(text('ALTER TABLE users ADD COLUMN verification_token_expiry TIMESTAMP'))
+            conn.commit()
         if 'reset_token' not in cols:
             conn.execute(text('ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)'))
             conn.commit()
@@ -151,36 +165,18 @@ def _migrate_schema():
             if 'color_id' not in prod_img_cols:
                 conn.execute(text('ALTER TABLE product_images ADD COLUMN color_id INTEGER REFERENCES colors(id)'))
                 conn.commit()
-
-
+                
 def _create_default_admin(app):
     from app.models import User
-    from sqlalchemy.exc import IntegrityError
-    from sqlalchemy import or_
-    admin = User.query.filter(
-        or_(User.email == 'admin@muebles.com', User.username == 'admin')
-    ).first()
-    if not admin:
-        temp_password = secrets.token_urlsafe(16)
-        admin = User(
-            username='admin',
-            email='admin@muebles.com',
-            is_admin=True
-        )
-        admin.set_password(temp_password)
+    email = os.environ.get('DEFAULT_ADMIN_EMAIL', '').strip()
+    password = os.environ.get('DEFAULT_ADMIN_PASSWORD', '').strip()
+    if not email or not password or len(password) < 12:
+        return  # No crear nada
+    if not User.query.filter_by(is_admin=True).first():
+        admin = User(username='admin', email=email, is_admin=True, email_verified=True)
+        admin.set_password(password)
         db.session.add(admin)
-        try:
-            db.session.commit()
-            logging.getLogger(__name__).warning(
-                "\n" + "=" * 60 +
-                f"\nAdmin account created."
-                f"\n  email:    admin@muebles.com"
-                f"\n  password: {temp_password}"
-                f"\nCHANGE THIS PASSWORD IMMEDIATELY after first login."
-                "\n" + "=" * 60
-            )
-        except IntegrityError:
-            db.session.rollback()
+        db.session.commit()
 
 
 def _create_default_categories():

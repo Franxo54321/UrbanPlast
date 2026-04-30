@@ -1,11 +1,13 @@
 import os
 import uuid
+import requests
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
+from urllib.parse import urlparse
 from app import db
 from app.models import (Product, Category, User, CartItem, Order, OrderItem,
                         Material, Color, ProductImage, Coupon, OrderStatusHistory,
@@ -26,6 +28,16 @@ def admin_required(f):
     return decorated_function
 
 
+def _safe_remove(filename):
+    """Elimina archivo del UPLOAD_FOLDER validando que no haya path traversal."""
+    upload_dir = os.path.realpath(current_app.config['UPLOAD_FOLDER'])
+    target = os.path.realpath(os.path.join(upload_dir, filename))
+    if not target.startswith(upload_dir + os.sep):
+        return
+    if os.path.exists(target):
+        os.remove(target)
+
+
 def _save_image(file):
     if not file or file.filename == '':
         return None
@@ -41,14 +53,15 @@ def _save_image(file):
         import io as _io
         img = Image.open(_io.BytesIO(file_bytes))
         img.verify()
+        img = Image.open(_io.BytesIO(file_bytes))
+        if img.mode in ('RGBA', 'P') and ext in ('jpg', 'jpeg'):
+            img = img.convert('RGB')
+        unique_name = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_name)
+        img.save(filepath, optimize=True)
+        return unique_name
     except Exception:
         return None
-
-    unique_name = f"{uuid.uuid4().hex}.{ext}"
-    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_name)
-    with open(filepath, 'wb') as out:
-        out.write(file_bytes)
-    return unique_name
 
 
 def _slugify(text):
@@ -190,9 +203,7 @@ def product_create():
                     # Replace existing color image if any
                     existing = ProductImage.query.filter_by(product_id=product.id, color_id=color.id).first()
                     if existing:
-                        old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], existing.filename)
-                        if os.path.exists(old_path):
-                            os.remove(old_path)
+                        _safe_remove(existing.filename)
                         existing.filename = saved
                     else:
                         db.session.add(ProductImage(product_id=product.id, filename=saved, position=pos, color_id=color.id))
@@ -238,9 +249,7 @@ def product_edit(product_id):
             for img_id in deleted_ids:
                 img = ProductImage.query.get(int(img_id))
                 if img and img.product_id == product.id:
-                    path = os.path.join(current_app.config['UPLOAD_FOLDER'], img.filename)
-                    if os.path.exists(path):
-                        os.remove(path)
+                    _safe_remove(img.filename)
                     db.session.delete(img)
 
         files = request.files.getlist('images')
@@ -260,9 +269,7 @@ def product_edit(product_id):
                 if saved:
                     existing = ProductImage.query.filter_by(product_id=product.id, color_id=color.id).first()
                     if existing:
-                        old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], existing.filename)
-                        if os.path.exists(old_path):
-                            os.remove(old_path)
+                        _safe_remove(existing.filename)
                         existing.filename = saved
                     else:
                         db.session.add(ProductImage(product_id=product.id, filename=saved, position=pos, color_id=color.id))
@@ -283,14 +290,10 @@ def product_delete(product_id):
     CartItem.query.filter_by(product_id=product.id).delete()
 
     for img in product.images.all():
-        path = os.path.join(current_app.config['UPLOAD_FOLDER'], img.filename)
-        if os.path.exists(path):
-            os.remove(path)
+        _safe_remove(img.filename)
 
     if product.image:
-        img_path = os.path.join(current_app.config['UPLOAD_FOLDER'], product.image)
-        if os.path.exists(img_path):
-            os.remove(img_path)
+        _safe_remove(product.image)
 
     db.session.delete(product)
     db.session.commit()
@@ -747,11 +750,11 @@ def hero_image():
 
         if action == 'url':
             url = request.form.get('image_url', '').strip()
-            if url:
+            if url and _is_safe_image_url(url):
                 SiteSetting.set('hero_image_url', url)
                 flash('URL de imagen guardada correctamente.', 'success')
             else:
-                flash('La URL no puede estar vacía.', 'danger')
+                flash('URL inválida o no permitida.', 'danger')
             return redirect(url_for('admin.hero_image'))
 
         # action == 'upload'
@@ -767,3 +770,244 @@ def hero_image():
     return render_template('admin/hero_image.html',
                            active_page='hero_image',
                            current_url=current_url)
+
+
+def _is_safe_image_url(url):
+    if not url:
+        return False
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False
+    if parsed.scheme not in ('http', 'https'):
+        return False
+    blocked = {'localhost', '127.0.0.1', '0.0.0.0', '169.254.169.254'}
+    if parsed.hostname in blocked or parsed.hostname.startswith('192.168.') or parsed.hostname.startswith('10.'):
+        return False
+    if not parsed.path.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.svg')):
+        return False
+    return True
+
+
+# ──────────────────── Andreani Test ────────────────────
+
+def _andreani_payload_from_form(form_data):
+    return {
+        'contrato': form_data.get('contrato', '').strip(),
+        'tipoDeServicio': form_data.get('tipo_servicio', 'estandar').strip(),
+        'sucursalClienteID': int(form_data.get('sucursal_cliente_id', 0) or 0),
+        'origen': {
+            'postal': {
+                'codigoPostal': form_data.get('origen_cp', '').strip(),
+                'calle': form_data.get('origen_calle', '').strip(),
+                'numero': form_data.get('origen_numero', '').strip(),
+                'piso': form_data.get('origen_piso', '').strip(),
+                'departamento': form_data.get('origen_depto', '').strip(),
+                'localidad': form_data.get('origen_localidad', '').strip(),
+                'region': form_data.get('origen_region', '').strip(),
+                'pais': form_data.get('origen_pais', 'AR').strip(),
+                'casillaDeCorreo': '',
+                'componentesDeDireccion': [
+                    {'meta': 'referencia', 'contenido': form_data.get('origen_ref', '').strip()}
+                ],
+            },
+            'coordenadas': {
+                'elevacion': 0,
+                'latitud': float(form_data.get('origen_lat', 0) or 0),
+                'longitud': float(form_data.get('origen_lng', 0) or 0),
+                'poligono': 0,
+            },
+        },
+        'destino': {
+            'postal': {
+                'codigoPostal': form_data.get('destino_cp', '').strip(),
+                'calle': form_data.get('destino_calle', '').strip(),
+                'numero': form_data.get('destino_numero', '').strip(),
+                'piso': form_data.get('destino_piso', '').strip(),
+                'departamento': form_data.get('destino_depto', '').strip(),
+                'localidad': form_data.get('destino_localidad', '').strip(),
+                'region': form_data.get('destino_region', '').strip(),
+                'pais': form_data.get('destino_pais', 'AR').strip(),
+                'casillaDeCorreo': '',
+                'componentesDeDireccion': [
+                    {'meta': 'referencia', 'contenido': form_data.get('destino_ref', '').strip()}
+                ],
+            },
+            'coordenadas': {
+                'elevacion': 0,
+                'latitud': float(form_data.get('destino_lat', 0) or 0),
+                'longitud': float(form_data.get('destino_lng', 0) or 0),
+                'poligono': 0,
+            },
+        },
+        'idPedido': form_data.get('id_pedido', '').strip(),
+        'remitente': {
+            'nombreCompleto': form_data.get('remitente_nombre', '').strip(),
+            'email': form_data.get('remitente_email', '').strip(),
+            'documentoTipo': form_data.get('remitente_doc_tipo', 'CUIT').strip(),
+            'documentoNumero': form_data.get('remitente_doc_numero', '').strip(),
+            'telefonos': [
+                {'tipo': 1, 'numero': form_data.get('remitente_telefono', '').strip()}
+            ],
+        },
+        'destinatario': [{
+            'nombreCompleto': form_data.get('dest_nombre', '').strip(),
+            'email': form_data.get('dest_email', '').strip(),
+            'documentoTipo': form_data.get('dest_doc_tipo', 'DNI').strip(),
+            'documentoNumero': form_data.get('dest_doc_numero', '').strip(),
+            'telefonos': [
+                {'tipo': 1, 'numero': form_data.get('dest_telefono', '').strip()}
+            ],
+        }],
+        'remito': {
+            'numeroRemito': form_data.get('numero_remito', '').strip(),
+            'complementarios': [form_data.get('remito_complemento', '').strip()],
+        },
+        'centroDeCostos': form_data.get('centro_costos', 'ECOMMERCE').strip(),
+        'productoAEntregar': form_data.get('producto', '').strip(),
+        'tipoProducto': form_data.get('tipo_producto', 'PAQUETE').strip(),
+        'categoriaFacturacion': form_data.get('categoria_facturacion', 'NORMAL').strip(),
+        'pagoDestino': int(form_data.get('pago_destino', 0) or 0),
+        'valorACobrar': float(form_data.get('valor_cobrar', 0) or 0),
+        'fechaDeEntrega': {
+            'fecha': form_data.get('fecha_entrega', '').strip(),
+            'horaDesde': form_data.get('hora_desde', '09:00').strip(),
+            'horaHasta': form_data.get('hora_hasta', '18:00').strip(),
+        },
+        'codigoVerificadorDeEntrega': form_data.get('codigo_verificador', '').strip(),
+        'bultos': [{
+            'kilos': float(form_data.get('kilos', 1) or 1),
+            'largoCm': int(form_data.get('largo', 20) or 20),
+            'altoCm': int(form_data.get('alto', 20) or 20),
+            'anchoCm': int(form_data.get('ancho', 20) or 20),
+            'volumenCm': int(form_data.get('volumen', 8000) or 8000),
+            'valorDeclaradoSinImpuestos': float(form_data.get('valor_sin_imp', 0) or 0),
+            'valorDeclaradoConImpuestos': float(form_data.get('valor_con_imp', 0) or 0),
+            'referencias': [
+                {'meta': 'sku', 'contenido': form_data.get('sku_ref', '').strip()}
+            ],
+            'descripcion': form_data.get('descripcion_bulto', '').strip(),
+            'valorDeclarado': float(form_data.get('valor_declarado', 0) or 0),
+            'ean': form_data.get('ean', '').strip(),
+        }],
+        'pagoPendienteEnMostrador': bool(form_data.get('pago_pendiente_mostrador')),
+    }
+
+
+@admin_bp.route('/andreani-test', methods=['GET', 'POST'])
+@admin_required
+def andreani_test():
+    defaults = {
+        'api_url': 'https://apissandbox.andreani.com/beta/transporte-distribucion/ordenes-de-envio',
+        'tracking_url_template': 'https://apissandbox.andreani.com/beta/transporte-distribucion/ordenes-de-envio/{numero}',
+        'tracking_number': '',
+        'contrato': 'CTR-TEST',
+        'tipo_servicio': 'estandar',
+        'sucursal_cliente_id': '1',
+        'origen_cp': '1414',
+        'origen_calle': 'Honduras',
+        'origen_numero': '3872',
+        'origen_localidad': 'CABA',
+        'origen_region': 'Buenos Aires',
+        'origen_pais': 'AR',
+        'origen_ref': 'Deposito principal',
+        'origen_lat': '-34.5895',
+        'origen_lng': '-58.4284',
+        'destino_cp': '5000',
+        'destino_calle': 'San Martin',
+        'destino_numero': '1234',
+        'destino_localidad': 'Cordoba',
+        'destino_region': 'Cordoba',
+        'destino_pais': 'AR',
+        'destino_ref': 'Casa con porton negro',
+        'destino_lat': '-31.4201',
+        'destino_lng': '-64.1888',
+        'id_pedido': f'ORD-WEB-{datetime.utcnow().strftime("%Y%m%d%H%M%S")}',
+        'remitente_nombre': 'UrbanPlast',
+        'remitente_email': 'logistica@urbanplast.com',
+        'remitente_doc_tipo': 'CUIT',
+        'remitente_doc_numero': '30712345678',
+        'remitente_telefono': '1144556677',
+        'dest_nombre': 'Cliente Test',
+        'dest_email': 'cliente@test.com',
+        'dest_doc_tipo': 'DNI',
+        'dest_doc_numero': '32123456',
+        'dest_telefono': '1133344455',
+        'numero_remito': f'REM-{datetime.utcnow().strftime("%H%M%S")}',
+        'remito_complemento': 'WEB',
+        'centro_costos': 'ECOMMERCE',
+        'producto': 'Muebles de exterior',
+        'tipo_producto': 'PAQUETE',
+        'categoria_facturacion': 'NORMAL',
+        'pago_destino': '0',
+        'valor_cobrar': '0',
+        'fecha_entrega': datetime.utcnow().strftime('%Y-%m-%d'),
+        'hora_desde': '09:00',
+        'hora_hasta': '18:00',
+        'codigo_verificador': 'PIN1234',
+        'kilos': '5',
+        'largo': '60',
+        'alto': '40',
+        'ancho': '50',
+        'volumen': '120000',
+        'valor_sin_imp': '80000',
+        'valor_con_imp': '96000',
+        'valor_declarado': '96000',
+        'sku_ref': 'SKU-TEST-001',
+        'descripcion_bulto': 'Silla plastica apilable',
+        'ean': '7791234567890',
+        'pago_pendiente_mostrador': '',
+    }
+
+    form_data = dict(defaults)
+    result = None
+
+    if request.method == 'POST':
+        form_data.update({k: v for k, v in request.form.items()})
+        action = (form_data.get('action') or 'create_order').strip()
+        api_key = (form_data.get('api_key') or '').strip() or current_app.config.get('ANDREANI_API_KEY', '')
+        api_url = (form_data.get('api_url') or '').strip() or defaults['api_url']
+        tracking_tpl = (form_data.get('tracking_url_template') or '').strip() or defaults['tracking_url_template']
+
+        try:
+            headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': api_key,
+            }
+
+            if action == 'track_order':
+                tracking_number = (form_data.get('tracking_number') or '').strip()
+                if not tracking_number:
+                    raise ValueError('Ingresa un numero de envio para consultar tracking.')
+                tracking_url = tracking_tpl.replace('{numero}', tracking_number)
+                response = requests.get(tracking_url, headers=headers, timeout=35, verify=True)
+                payload = None
+            else:
+                payload = _andreani_payload_from_form(form_data)
+                response = requests.post(api_url, headers=headers, json=payload, timeout=35, verify=True)
+
+            try:
+                response_body = response.json()
+            except ValueError:
+                response_body = response.text
+
+            result = {
+                'action': action,
+                'status_code': response.status_code,
+                'ok': response.ok,
+                'payload': payload,
+                'request_url': response.url,
+                'response': response_body,
+            }
+        except Exception as exc:
+            result = {
+                'action': action,
+                'status_code': None,
+                'ok': False,
+                'payload': None,
+                'request_url': None,
+                'response': f'Error ejecutando request: {exc}',
+            }
+
+    return render_template('admin/andreani_test_form.html', form_data=form_data, result=result)

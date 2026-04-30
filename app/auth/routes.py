@@ -45,11 +45,13 @@ def register():
         from app.email_utils import is_email_configured
         mail_configured = is_email_configured()
         token = secrets.token_urlsafe(32) if mail_configured else None
+        token_expiry = datetime.utcnow() + timedelta(hours=24) if mail_configured else None
         user = User(
             username=form.username.data,
             email=form.email.data,
             email_verified=not mail_configured,
-            verification_token=token
+            verification_token=token,
+            verification_token_expiry=token_expiry,
         )
         user.set_password(form.password.data)
         db.session.add(user)
@@ -75,12 +77,13 @@ def register():
 @auth_bp.route('/verificar/<token>')
 def verify_email(token):
     user = User.query.filter_by(verification_token=token).first()
-    if not user:
-        flash('El link de verificación es inválido o ya fue usado.', 'danger')
+    if not user or (user.verification_token_expiry and user.verification_token_expiry < datetime.utcnow()):
+        flash('El link de verificación es inválido o expiró (válido por 24 horas).', 'danger')
         return redirect(url_for('auth.login'))
 
     user.email_verified = True
     user.verification_token = None
+    user.verification_token_expiry = None
     db.session.commit()
     flash('¡Email verificado! Ya podés iniciar sesión.', 'success')
     return redirect(url_for('auth.login'))
@@ -94,6 +97,7 @@ def resend_verification():
     if user and not user.email_verified:
         token = secrets.token_urlsafe(32)
         user.verification_token = token
+        user.verification_token_expiry = datetime.utcnow() + timedelta(hours=24)
         db.session.commit()
         _app = current_app._get_current_object()
         base_url = current_app.config.get('BASE_URL', '').rstrip('/')
@@ -167,7 +171,7 @@ def reset_password(token):
     return render_template('auth/reset_password.html', form=form)
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
