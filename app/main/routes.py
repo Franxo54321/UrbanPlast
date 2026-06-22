@@ -23,6 +23,11 @@ def about():
     return render_template('about.html')
 
 
+@main_bp.route('/politica-privacidad')
+def privacy():
+    return render_template('privacy.html')
+
+
 @main_bp.route('/contacto', methods=['GET', 'POST'])
 def contact():
     from app.main.forms import ContactForm
